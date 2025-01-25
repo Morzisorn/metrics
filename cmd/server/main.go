@@ -3,22 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
+
+	"github.com/morzisorn/metrics/internal/storage"
 )
 
-type MemStorage struct {
-	Metrics map[string]float64
-}
-
-var storage = MemStorage{
+var s = storage.MemStorage{
 	Metrics: make(map[string]float64),
-}
-
-type Storage interface {
-	GetMetric(name string) (float64, bool)
-	UpdateCounter(name, value string) error
-	UpdateGauge(name, value string) error
 }
 
 func mainPage(w http.ResponseWriter, r *http.Request) {
@@ -45,12 +36,12 @@ func update(w http.ResponseWriter, r *http.Request) {
 
 	switch typeMetric {
 	case "counter":
-		err := storage.UpdateCounter(nameMetric, valueMetric)
+		err := s.UpdateCounter(nameMetric, valueMetric)
 		if err != nil {
 			http.Error(w, "Invalid value metric", http.StatusBadRequest)
 		}
 	case "gauge":
-		err := storage.UpdateGauge(nameMetric, valueMetric)
+		err := s.UpdateGauge(nameMetric, valueMetric)
 		if err != nil {
 			http.Error(w, "Invalid value metric", http.StatusBadRequest)
 		}
@@ -60,34 +51,6 @@ func update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 
-}
-
-func (m *MemStorage) GetMetric(name string) (float64, bool) {
-	metric, exist := m.Metrics[name]
-	return metric, exist
-}
-
-func (m *MemStorage) UpdateCounter(name, value string) error {
-	v, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return err
-	}
-	metric, exist := storage.GetMetric(name)
-	if exist {
-		metric += float64(v)
-	}
-	storage.Metrics[name] = metric
-	return nil
-}
-
-func (m *MemStorage) UpdateGauge(name, value string) error {
-	v, err := strconv.ParseFloat(value, 64)
-	if err != nil {
-		return err
-	}
-	storage.Metrics[name] = v
-
-	return nil
 }
 
 func main() {
