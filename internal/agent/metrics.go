@@ -105,7 +105,15 @@ func SendMetric(mType string, gauge string, value float64) error {
 	if err != nil {
 		return err
 	}
-	client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
 	return nil
 }
 
