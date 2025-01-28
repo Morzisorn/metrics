@@ -12,7 +12,7 @@ const (
 	reportInterval = 10
 )
 
-func main() {
+func RunAgent() error {
 	now := time.Now()
 	lastReport := time.Now()
 	m := agent.Metrics{}
@@ -21,15 +21,22 @@ func main() {
 			now = time.Now()
 			err := m.PollAllMetrics()
 			if err != nil {
-				fmt.Println(err)
+				return err
 			}
 			if time.Since(lastReport) >= reportInterval {
 				lastReport = time.Now()
 				err := m.SendAllMetrics()
 				if err != nil {
-					fmt.Println(err)
+					return err
 				}
 			}
 		}
+	}
+}
+
+func main() {
+	err := RunAgent()
+	if err != nil {
+		fmt.Println(err)
 	}
 }

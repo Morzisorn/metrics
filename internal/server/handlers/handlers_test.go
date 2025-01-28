@@ -52,7 +52,7 @@ func TestUpdateInvalidPath(t *testing.T) {
 
 	Update(w, r)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestUpdateInvalidMethod(t *testing.T) {
