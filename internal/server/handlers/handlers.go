@@ -18,21 +18,25 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid path", http.StatusNotFound)
 		return
 	}
+	method := splitPath[1]
+	if method != "update" {
+		http.Error(w, "Invalid method", http.StatusNotFound)
+		return
+	}
 
-	typeMetric := splitPath[2]
 	nameMetric := splitPath[3]
-	valueMetric := splitPath[4]
-
 	if nameMetric == "" {
 		http.Error(w, "Invalid name metric", http.StatusNotFound)
 		return
 	}
 
+	valueMetric := splitPath[4]
 	if valueMetric == "" {
 		http.Error(w, "Invalid value metric", http.StatusNotFound)
 		return
 	}
 
+	typeMetric := splitPath[2]
 	switch typeMetric {
 	case "counter":
 		s := storage.GetStorage()
