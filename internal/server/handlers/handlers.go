@@ -24,7 +24,12 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	valueMetric := splitPath[4]
 
 	if nameMetric == "" {
-		http.Error(w, "Invalid name or value metric", http.StatusBadRequest)
+		http.Error(w, "Invalid name metric", http.StatusNotFound)
+		return
+	}
+
+	if valueMetric == "" {
+		http.Error(w, "Invalid value metric", http.StatusBadRequest)
 		return
 	}
 
