@@ -15,7 +15,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 	splitPath := strings.Split(r.URL.Path, "/")
 	if len(splitPath) != 5 {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
+		http.Error(w, "Invalid path", http.StatusNotFound)
 		return
 	}
 
@@ -29,7 +29,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if valueMetric == "" {
-		http.Error(w, "Invalid value metric", http.StatusBadRequest)
+		http.Error(w, "Invalid value metric", http.StatusNotFound)
 		return
 	}
 
