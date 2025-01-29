@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/internal/server/storage"
@@ -14,7 +15,8 @@ func GetMetrics(c *gin.Context) {
 
 	html := "<html><head><title>Metrics</title></head><body><h1>Metrics</h1><ul>"
 	for key, value := range metrics {
-		html += fmt.Sprintf("<li>%s: %v</li>", key, value)
+		str := trimTrailingZeros(fmt.Sprintf("%f", value))
+		html += fmt.Sprintf("<li>%s: %v</li>", key, str)
 	}
 	html += "</ul></body></html>"
 
@@ -79,5 +81,14 @@ func GetMetric(c *gin.Context) {
 		c.String(http.StatusNotFound, "Metric not found")
 		return
 	}
-	c.String(http.StatusOK, "%f", m)
+	str := trimTrailingZeros(fmt.Sprintf("%f", m))
+	c.String(http.StatusOK, str)
+}
+
+func trimTrailingZeros(s string) string {
+	s = strings.TrimRight(s, "0") // Убираем нули справа
+	if strings.HasSuffix(s, ".") {
+		s = s[:len(s)-1] // Убираем точку, если осталась
+	}
+	return s
 }
