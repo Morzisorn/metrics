@@ -23,7 +23,12 @@ func GetMetrics(c *gin.Context) {
 
 func Update(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
-		c.String(http.StatusMethodNotAllowed, "Invalid method or content type")
+		c.String(http.StatusMethodNotAllowed, "Invalid request method")
+		return
+	}
+
+	if c.Request.Header.Get("Content-Type") != "text/plain" && c.Request.Header.Get("Content-Type") != "" {
+		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return
 	}
 
