@@ -22,7 +22,7 @@ func GetMetrics(c *gin.Context) {
 }
 
 func Update(c *gin.Context) {
-	if c.Request.Method != http.MethodPost || c.GetHeader("Content-Type") != "text/plain" {
+	if c.Request.Method != http.MethodPost {
 		c.String(http.StatusMethodNotAllowed, "Invalid method or content type")
 		return
 	}
