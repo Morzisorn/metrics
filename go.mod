@@ -38,5 +38,4 @@ require (
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	resty.dev/v3 v3.0.0-alpha.10
 )
