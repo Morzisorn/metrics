@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/morzisorn/metrics/internal/server/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,13 +18,20 @@ const (
 func TestUpdateCounterOK(t *testing.T) {
 	s := storage.GetStorage()
 	url := host + "/update/counter/test/1"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
-	Update(w, r)
-	Update(w, r)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "counter"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "1"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	Update(c)
+	Update(c)
+
+	assert.Equal(t, http.StatusOK, c.Writer.Status())
 	v, exist := s.GetMetric("test")
 	assert.True(t, exist)
 	assert.Equal(t, 2.0, v)
@@ -31,14 +40,20 @@ func TestUpdateCounterOK(t *testing.T) {
 func TestUpdateGaugeOK(t *testing.T) {
 	s := storage.GetStorage()
 	url := host + "/update/gauge/test/2.5"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "gauge"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "2.5"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(w, r)
-	Update(w, r)
+	Update(c)
+	Update(c)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusOK, c.Writer.Status())
 	v, exist := s.GetMetric("test")
 	assert.True(t, exist)
 	assert.Equal(t, 2.5, v)
@@ -46,66 +61,106 @@ func TestUpdateGaugeOK(t *testing.T) {
 
 func TestUpdateInvalidPath(t *testing.T) {
 	url := host + "/update/counter/test"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "counter"},
+		{Key: "metric", Value: "test"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(w, r)
+	Update(c)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusNotFound, c.Writer.Status())
 }
 
 func TestUpdateInvalidMethod(t *testing.T) {
 	url := host + "/update/counter/test/1"
-	r := httptest.NewRequest("GET", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
 
-	Update(w, r)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("GET", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "counter"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "1"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	Update(c)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, c.Writer.Status())
 }
 
 func TestUpdateInvalidContentType(t *testing.T) {
 	url := host + "/update/counter/test/1"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "incorrect")
-	w := httptest.NewRecorder()
 
-	Update(w, r)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "counter"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "1"},
+	}
+	c.Request.Header.Set("Content-Type", "incorrect")
 
-	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	Update(c)
+
+	assert.Equal(t, http.StatusMethodNotAllowed, c.Writer.Status())
 }
 
 func TestUpdateInvalidType(t *testing.T) {
 	url := host + "/update/incorrect/test/1"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
 
-	Update(w, r)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "incorrect"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "1"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	Update(c)
+
+	assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
 }
 
 func TestUpdateInvalidGaugeValue(t *testing.T) {
 	url := host + "/update/gauge/test/incorrect"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
 
-	Update(w, r)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "counter"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "incorrect"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	Update(c)
+
+	assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
 }
 
 func TestUpdateInvalidCounterValue(t *testing.T) {
 	url := host + "/update/counter/test/2.5"
-	r := httptest.NewRequest("POST", url, nil)
-	r.Header.Set("Content-Type", "text/plain")
-	w := httptest.NewRecorder()
 
-	Update(w, r)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", url, nil)
+	c.Request.Header.Set("Content-Type", "text/plain")
+	c.Params = gin.Params{
+		{Key: "type", Value: "counter"},
+		{Key: "metric", Value: "test"},
+		{Key: "value", Value: "2.5"},
+	}
+	c.Request.Header.Set("Content-Type", "text/plain")
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	Update(c)
+
+	assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
 }

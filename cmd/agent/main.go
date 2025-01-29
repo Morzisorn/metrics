@@ -19,13 +19,13 @@ func RunAgent() error {
 	for {
 		if time.Since(now).Seconds() >= pollInterval {
 			now = time.Now()
-			err := m.PollAllMetrics()
+			err := m.PollMetrics()
 			if err != nil {
 				return err
 			}
 			if time.Since(lastReport) >= reportInterval {
 				lastReport = time.Now()
-				err := m.SendAllMetrics()
+				err := m.SendMetrics()
 				if err != nil {
 					return err
 				}

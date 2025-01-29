@@ -7,6 +7,7 @@ import (
 
 type Storage interface {
 	GetMetric(name string) (float64, bool)
+	GetMetrics() map[string]float64
 	UpdateCounter(name, value string) error
 	UpdateGauge(name, value string) error
 }
@@ -32,6 +33,10 @@ func GetStorage() Storage {
 func (m *MemStorage) GetMetric(name string) (float64, bool) {
 	metric, exist := m.Metrics[name]
 	return metric, exist
+}
+
+func (m *MemStorage) GetMetrics() map[string]float64 {
+	return m.Metrics
 }
 
 func (m *MemStorage) UpdateCounter(name, value string) error {

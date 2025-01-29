@@ -1,61 +1,78 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/internal/server/storage"
 )
 
-func Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "text/plain" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func GetMetrics(c *gin.Context) {
+	s := storage.GetStorage()
+	metrics := s.GetMetrics()
+
+	html := "<html><head><title>Metrics</title></head><body><h1>Metrics</h1><ul>"
+	for key, value := range metrics {
+		html += fmt.Sprintf("<li>%s: %v</li>", key, value)
+	}
+	html += "</ul></body></html>"
+
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+func Update(c *gin.Context) {
+	if c.Request.Method != http.MethodPost || c.GetHeader("Content-Type") != "text/plain" {
+		c.String(http.StatusMethodNotAllowed, "Invalid method or content type")
 		return
 	}
 
-	splitPath := strings.Split(r.URL.Path, "/")
-	if len(splitPath) != 5 {
-		http.Error(w, "Invalid path", http.StatusNotFound)
-		return
-	}
-	method := splitPath[1]
-	if method != "update" {
-		http.Error(w, "Invalid method", http.StatusNotFound)
-		return
-	}
-
-	nameMetric := splitPath[3]
+	nameMetric := c.Param("metric")
 	if nameMetric == "" {
-		http.Error(w, "Invalid name metric", http.StatusNotFound)
+		c.String(http.StatusNotFound, "Invalid metric name")
 		return
 	}
 
-	valueMetric := splitPath[4]
+	valueMetric := c.Param("value")
 	if valueMetric == "" {
-		http.Error(w, "Invalid value metric", http.StatusNotFound)
+		c.String(http.StatusNotFound, "Invalid metric value")
 		return
 	}
 
-	typeMetric := splitPath[2]
+	typeMetric := c.Param("type")
 	switch typeMetric {
 	case "counter":
 		s := storage.GetStorage()
 		err := s.UpdateCounter(nameMetric, valueMetric)
 		if err != nil {
-			http.Error(w, "Invalid value metric", http.StatusBadRequest)
+			c.String(http.StatusBadRequest, "Invalid metric value")
 			return
 		}
 	case "gauge":
 		s := storage.GetStorage()
 		err := s.UpdateGauge(nameMetric, valueMetric)
 		if err != nil {
-			http.Error(w, "Invalid value metric", http.StatusBadRequest)
+			c.String(http.StatusBadRequest, "Invalid value metric")
 			return
 		}
 	default:
-		http.Error(w, "Invalid type metric", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, "Invalid metric type")
 		return
 	}
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
+	c.String(http.StatusOK, "OK")
+}
+
+func GetMetric(c *gin.Context) {
+	nameMetric := c.Params.ByName("metric")
+	if nameMetric == "" {
+		c.String(http.StatusNotFound, "Invalid metric name")
+		return
+	}
+	s := storage.GetStorage()
+	m, exist := s.GetMetric(nameMetric)
+	if !exist {
+		c.String(http.StatusNotFound, "Metric not found")
+		return
+	}
+	c.String(http.StatusOK, "%f", m)
 }

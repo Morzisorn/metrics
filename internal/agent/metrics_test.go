@@ -9,13 +9,13 @@ import (
 
 func TestPollAllMetrics(t *testing.T) {
 	m := Metrics{}
-	require.NoError(t, m.PollAllMetrics())
+	require.NoError(t, m.PollMetrics())
 	assert.NotEmpty(t, m.RandomValue)
 	assert.Equal(t, int64(1), m.PollCount)
 }
 
 func TestSendAllMetrics(t *testing.T) {
 	m := Metrics{}
-	require.NoError(t, m.PollAllMetrics())
-	require.NoError(t, m.SendAllMetrics())
+	require.NoError(t, m.PollMetrics())
+	require.NoError(t, m.SendMetrics())
 }

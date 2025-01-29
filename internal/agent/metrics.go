@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"runtime"
 	"time"
+
+	"resty.dev/v3"
 )
 
 const host = "http://localhost:8080"
@@ -48,7 +50,7 @@ type Metrics struct {
 	RandomValue float64
 }
 
-func (m *Metrics) PollAllMetrics() error {
+func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	m.RuntimeGauges = make(map[string]float64)
@@ -91,7 +93,7 @@ func GetRandomValue() float64 {
 }
 
 func SendMetric(mType string, gauge string, value float64) error {
-	client := http.Client{}
+	client := resty.New()
 	var url string
 	switch mType {
 	case "counter":
@@ -101,23 +103,19 @@ func SendMetric(mType string, gauge string, value float64) error {
 	default:
 		return fmt.Errorf("unsupported metric type %s", mType)
 	}
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	resp, err := client.R().Post(url)
 	if err != nil {
 		return err
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
 	}
 	resp.Body.Close()
 
 	return nil
 }
 
-func (m *Metrics) SendAllMetrics() error {
+func (m *Metrics) SendMetrics() error {
 	for gauge, value := range m.RuntimeGauges {
 		err := SendMetric("gauge", gauge, value)
 		if err != nil {

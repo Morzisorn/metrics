@@ -1,19 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"github.com/gin-gonic/gin"
 
 	server "github.com/morzisorn/metrics/internal/server/handlers"
 )
 
-func startServer() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", server.Update)
+func startServer() *gin.Engine {
+	mux := gin.Default()
+	mux.GET("/", server.GetMetrics)
+	mux.POST("/update/:type/:metric/:value", server.Update)
+	mux.GET("/value/:type/:metric", server.GetMetric)
 	return mux
 }
 
 func main() {
 	mux := startServer()
-	fmt.Println(http.ListenAndServe(":8080", mux))
+	mux.Run()
 }
