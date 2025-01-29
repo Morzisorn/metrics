@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"resty.dev/v3"
+	"github.com/go-resty/resty/v2"
 )
 
 const host = "http://localhost:8080"
@@ -110,7 +110,6 @@ func SendMetric(mType string, gauge string, value float64) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
 	}
-	resp.Body.Close()
 
 	return nil
 }
