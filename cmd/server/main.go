@@ -8,6 +8,7 @@ import (
 
 func startServer() *gin.Engine {
 	mux := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 	mux.GET("/", server.GetMetrics)
 	mux.POST("/update/:type/:metric/:value", server.Update)
 	mux.GET("/value/:type/:metric", server.GetMetric)
