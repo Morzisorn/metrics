@@ -29,6 +29,7 @@ func main() {
 	mux := createServer()
 	Conf.ParseFlags()
 	if err := runServer(mux); err != nil {
+		fmt.Println("Server failed to start:", err)
 		panic(err)
 	}
 }
