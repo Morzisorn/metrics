@@ -13,7 +13,7 @@ type Config struct {
 }
 
 func (c *Config) ParseFlags() {
-	pflag.StringVarP(&c.Addr, "addr", "a", ":8080", "address and port to run agent")
+	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
 	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "address and port to run agent")
 	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "address and port to run agent")
 

@@ -94,9 +94,9 @@ func SendMetric(client *resty.Client, mType string, gauge string, value float64)
 	var url string
 	switch mType {
 	case "counter":
-		url = fmt.Sprintf("%s/update/%s/%s/%d", client.BaseURL, "counter", gauge, int64(value))
+		url = fmt.Sprintf("%s/update/%s/%s/%d", "http://"+client.BaseURL, "counter", gauge, int64(value))
 	case "gauge":
-		url = fmt.Sprintf("%s/update/%s/%s/%f", client.BaseURL, "gauge", gauge, value)
+		url = fmt.Sprintf("%s/update/%s/%s/%f", "http://"+client.BaseURL, "gauge", gauge, value)
 	default:
 		return fmt.Errorf("unsupported metric type %s", mType)
 	}
