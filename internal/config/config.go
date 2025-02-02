@@ -27,10 +27,10 @@ func (c *Config) ParseFlags() {
 	}
 }
 
-func (c *Config) Init() error {
+func (c *Config) Init(app string) error {
 	_, currentFile, _, _ := runtime.Caller(0)
 	basePath := filepath.Dir(filepath.Dir(filepath.Dir(currentFile)))
-	envPath := filepath.Join(basePath, "internal", "config", ".env")
+	envPath := filepath.Join(basePath, "cmd", app, ".env")
 
 	err := godotenv.Load(envPath)
 	if err != nil {
@@ -43,21 +43,22 @@ func (c *Config) Init() error {
 	if addr != "" {
 		c.Addr = addr
 	}
+	if app == "agent" {
+		poll, err := strconv.ParseFloat(os.Getenv("POLL_INTERVAL"), 64)
+		if err != nil {
+			fmt.Println("Error parsing POLL_INTERVAL: ", err)
+		}
+		if poll != 0 {
+			c.PollInterval = poll
+		}
 
-	poll, err := strconv.ParseFloat(os.Getenv("POLL_INTERVAL"), 64)
-	if err != nil {
-		fmt.Println("Error parsing POLL_INTERVAL: ", err)
-	}
-	if poll != 0 {
-		c.PollInterval = poll
-	}
-
-	report, err := strconv.ParseFloat(os.Getenv("REPORT_INTERVAL"), 64)
-	if err != nil {
-		fmt.Println("Error parsing REPORT_INTERVAL: ", err)
-	}
-	if report != 0 {
-		c.ReportInterval = report
+		report, err := strconv.ParseFloat(os.Getenv("REPORT_INTERVAL"), 64)
+		if err != nil {
+			fmt.Println("Error parsing REPORT_INTERVAL: ", err)
+		}
+		if report != 0 {
+			c.ReportInterval = report
+		}
 	}
 
 	return nil

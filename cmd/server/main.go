@@ -26,7 +26,7 @@ func runServer(mux *gin.Engine) error {
 }
 
 func main() {
-	Conf.Init()
+	Conf.Init("server")
 	mux := createServer()
 	if err := runServer(mux); err != nil {
 		fmt.Println("Server failed to start:", err)

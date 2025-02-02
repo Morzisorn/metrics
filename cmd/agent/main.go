@@ -35,7 +35,7 @@ func RunAgent() error {
 }
 
 func main() {
-	Conf.Init()
+	Conf.Init("agent")
 	err := RunAgent()
 	if err != nil {
 		fmt.Println(err)
