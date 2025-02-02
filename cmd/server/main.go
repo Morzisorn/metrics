@@ -27,7 +27,7 @@ func runServer(mux *gin.Engine) error {
 	if err != nil {
 		fmt.Println("mux.Run() failed:", err)
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 	return err
 }
 
