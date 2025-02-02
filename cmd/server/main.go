@@ -23,11 +23,11 @@ func createServer() *gin.Engine {
 
 func runServer(mux *gin.Engine) error {
 	fmt.Println("Running server on", Conf.Addr)
-	time.Sleep(5 * time.Second)
 	err := mux.Run(Conf.Addr)
 	if err != nil {
 		fmt.Println("mux.Run() failed:", err)
 	}
+	time.Sleep(5 * time.Second)
 	return err
 }
 
