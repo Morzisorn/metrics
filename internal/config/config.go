@@ -18,15 +18,9 @@ type Config struct {
 }
 
 func (c *Config) ParseFlags() {
-	if c.Addr == "" {
-		pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
-	}
-	if c.PollInterval == 0 {
-		pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "address and port to run agent")
-	}
-	if c.ReportInterval == 0 {
-		pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "address and port to run agent")
-	}
+	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
+	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "address and port to run agent")
+	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "address and port to run agent")
 
 	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
 		panic(err)
@@ -43,16 +37,28 @@ func (c *Config) Init() error {
 		fmt.Println("Load .env error: ", err)
 	}
 
-	c.Addr = os.Getenv("ADDRESS")
-	c.PollInterval, err = strconv.ParseFloat(os.Getenv("POLL_INTERVAL"), 64)
+	c.ParseFlags()
+
+	addr := os.Getenv("ADDRESS")
+	if addr != "" {
+		c.Addr = addr
+	}
+
+	poll, err := strconv.ParseFloat(os.Getenv("POLL_INTERVAL"), 64)
 	if err != nil {
 		fmt.Println("Error parsing POLL_INTERVAL: ", err)
 	}
-	c.ReportInterval, err = strconv.ParseFloat(os.Getenv("REPORT_INTERVAL"), 64)
+	if poll != 0 {
+		c.PollInterval = poll
+	}
+
+	report, err := strconv.ParseFloat(os.Getenv("REPORT_INTERVAL"), 64)
 	if err != nil {
 		fmt.Println("Error parsing REPORT_INTERVAL: ", err)
 	}
+	if report != 0 {
+		c.ReportInterval = report
+	}
 
-	c.ParseFlags()
 	return nil
 }
