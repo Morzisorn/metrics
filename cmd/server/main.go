@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -22,6 +23,7 @@ func createServer() *gin.Engine {
 
 func runServer(mux *gin.Engine) error {
 	fmt.Println("Running server on", Conf.Addr)
+	time.Sleep(5 * time.Second)
 	err := mux.Run(Conf.Addr)
 	if err != nil {
 		fmt.Println("mux.Run() failed:", err)
