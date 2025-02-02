@@ -27,7 +27,7 @@ func runServer(mux *gin.Engine) error {
 
 func main() {
 	mux := createServer()
-	config.ParseFlags()
+	Conf.ParseFlags()
 	if err := runServer(mux); err != nil {
 		panic(err)
 	}

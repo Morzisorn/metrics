@@ -14,11 +14,11 @@ func TestParseFlagsOK(t *testing.T) {
 
 	os.Args = []string{"cmd", "-a", "localhost:9000", "-p", "5", "-r", "15"}
 
-	Conf = Config{}
+	Conf := Config{}
 
 	pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 
-	ParseFlags()
+	Conf.ParseFlags()
 
 	assert.Equal(t, "localhost:9000", Conf.Addr)
 	assert.Equal(t, 5.0, Conf.PollInterval)
@@ -31,11 +31,11 @@ func TestParseFlagsUnknown(t *testing.T) {
 
 	os.Args = []string{"cmd", "-z", "localhost:9000"}
 
-	Conf = Config{}
+	Conf := Config{}
 
 	pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 
 	assert.Panics(t, func() {
-		ParseFlags()
+		Conf.ParseFlags()
 	}, "Expected panic when parsing unknown flag")
 }

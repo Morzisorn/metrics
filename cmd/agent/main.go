@@ -35,7 +35,7 @@ func RunAgent() error {
 }
 
 func main() {
-	config.ParseFlags()
+	Conf.ParseFlags()
 	err := RunAgent()
 	if err != nil {
 		fmt.Println(err)
