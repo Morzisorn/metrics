@@ -3,6 +3,7 @@ package agent
 import (
 	"testing"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,6 +17,7 @@ func TestPollAllMetrics(t *testing.T) {
 
 func TestSendAllMetrics(t *testing.T) {
 	m := Metrics{}
+	client := resty.New()
 	require.NoError(t, m.PollMetrics())
-	require.NoError(t, m.SendMetrics())
+	require.NoError(t, m.SendMetrics(client))
 }

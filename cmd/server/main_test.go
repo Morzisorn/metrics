@@ -9,7 +9,7 @@ import (
 )
 
 func TestMainHandler(t *testing.T) {
-	mux := startServer()
+	mux := createServer()
 
 	ts := httptest.NewServer(mux)
 	defer ts.Close()

@@ -92,8 +92,7 @@ func GetRandomValue() float64 {
 	return math.Round(float64(time.Now().Nanosecond()) / 1000000)
 }
 
-func SendMetric(mType string, gauge string, value float64) error {
-	client := resty.New()
+func SendMetric(client *resty.Client, mType string, gauge string, value float64) error {
 	var url string
 	switch mType {
 	case "counter":
@@ -114,18 +113,18 @@ func SendMetric(mType string, gauge string, value float64) error {
 	return nil
 }
 
-func (m *Metrics) SendMetrics() error {
+func (m *Metrics) SendMetrics(client *resty.Client) error {
 	for gauge, value := range m.RuntimeGauges {
-		err := SendMetric("gauge", gauge, value)
+		err := SendMetric(client, "gauge", gauge, value)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	err := SendMetric("gauge", "RandomValue", m.RandomValue)
+	err := SendMetric(client, "gauge", "RandomValue", m.RandomValue)
 	if err != nil {
 		fmt.Println(err)
 	}
-	err = SendMetric("counter", "PollCount", float64(m.PollCount))
+	err = SendMetric(client, "counter", "PollCount", float64(m.PollCount))
 	if err != nil {
 		fmt.Println(err)
 	}
