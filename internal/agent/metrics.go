@@ -11,8 +11,6 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-const host = "http://localhost:8080"
-
 var RuntimeGauges = []string{
 	"Alloc",
 	"BuckHashSys",
@@ -96,9 +94,9 @@ func SendMetric(client *resty.Client, mType string, gauge string, value float64)
 	var url string
 	switch mType {
 	case "counter":
-		url = fmt.Sprintf("%s/update/%s/%s/%d", host, "counter", gauge, int64(value))
+		url = fmt.Sprintf("%s/update/%s/%s/%d", client.BaseURL, "counter", gauge, int64(value))
 	case "gauge":
-		url = fmt.Sprintf("%s/update/%s/%s/%f", host, "gauge", gauge, value)
+		url = fmt.Sprintf("%s/update/%s/%s/%f", client.BaseURL, "gauge", gauge, value)
 	default:
 		return fmt.Errorf("unsupported metric type %s", mType)
 	}
