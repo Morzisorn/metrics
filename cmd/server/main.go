@@ -24,14 +24,14 @@ func runServer(mux *gin.Engine) error {
 	fmt.Println("Running server on", Conf.Addr)
 	err := mux.Run(Conf.Addr)
 	if err != nil {
-		fmt.Println("mux.Run() failed:", err) // Должно появиться в логах при ошибке запуска
+		fmt.Println("mux.Run() failed:", err)
 	}
 	return err
 }
 
 func main() {
-	mux := createServer()
 	Conf.ParseFlags()
+	mux := createServer()
 	if err := runServer(mux); err != nil {
 		fmt.Println("Server failed to start:", err)
 		panic(err)
