@@ -4,28 +4,33 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/morzisorn/metrics/internal/agent"
 )
 
-const (
-	pollInterval   = 2
-	reportInterval = 10
-)
+type AgentConfig struct {
+	Addr           string
+	PollInterval   float64
+	ReportInterval float64
+}
+
+var AgentConf AgentConfig
 
 func RunAgent() error {
 	now := time.Now()
 	lastReport := time.Now()
 	m := agent.Metrics{}
+	client := resty.New().SetBaseURL(AgentConf.Addr)
 	for {
-		if time.Since(now).Seconds() >= pollInterval {
+		if time.Since(now).Seconds() >= AgentConf.PollInterval {
 			now = time.Now()
 			err := m.PollMetrics()
 			if err != nil {
 				return err
 			}
-			if time.Since(lastReport) >= reportInterval {
+			if time.Since(lastReport).Seconds() >= AgentConf.ReportInterval {
 				lastReport = time.Now()
-				err := m.SendMetrics()
+				err := m.SendMetrics(client)
 				if err != nil {
 					return err
 				}
@@ -35,6 +40,7 @@ func RunAgent() error {
 }
 
 func main() {
+	parseAgentFlags()
 	err := RunAgent()
 	if err != nil {
 		fmt.Println(err)
