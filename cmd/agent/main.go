@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/agent"
-	"github.com/morzisorn/metrics/internal/config"
 )
 
 var Conf config.Config
@@ -16,6 +16,7 @@ func RunAgent() error {
 	lastReport := time.Now()
 	m := agent.Metrics{}
 	client := resty.New().SetBaseURL(Conf.Addr)
+	fmt.Println("Running agent on", Conf.Addr)
 	for {
 		if time.Since(now).Seconds() >= Conf.PollInterval {
 			now = time.Now()

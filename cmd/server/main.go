@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/morzisorn/metrics/internal/config"
+	"github.com/morzisorn/metrics/config"
 	server "github.com/morzisorn/metrics/internal/server/handlers"
 )
 

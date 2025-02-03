@@ -86,7 +86,7 @@ func GetMetric(c *gin.Context) {
 }
 
 func trimTrailingZeros(s string) string {
-	s = strings.TrimRight(s, "0") // Убираем нули справа
+	s = strings.TrimRight(s, "0")
 	s = strings.TrimSuffix(s, ".")
 
 	return s

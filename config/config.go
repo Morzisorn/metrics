@@ -29,8 +29,8 @@ func (c *Config) ParseFlags() {
 
 func (c *Config) Init(app string) error {
 	_, currentFile, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(filepath.Dir(filepath.Dir(currentFile)))
-	envPath := filepath.Join(basePath, "cmd", app, ".env")
+	basePath := filepath.Dir(filepath.Dir(currentFile))
+	envPath := filepath.Join(basePath, "config", ".env")
 
 	err := godotenv.Load(envPath)
 	if err != nil {
