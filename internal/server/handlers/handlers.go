@@ -59,7 +59,7 @@ func Update(c *gin.Context) {
 		s := storage.GetStorage()
 		err := s.UpdateGauge(nameMetric, valueMetric)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Invalid value metric")
+			c.String(http.StatusBadRequest, "Invalid metric value")
 			return
 		}
 	default:
