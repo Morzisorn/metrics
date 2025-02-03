@@ -36,8 +36,11 @@ func RunAgent() error {
 }
 
 func main() {
-	Conf.Init("agent")
-	err := RunAgent()
+	err := Conf.Init("agent")
+	if err != nil {
+		panic(err)
+	}
+	err = RunAgent()
 	if err != nil {
 		fmt.Println(err)
 	}
