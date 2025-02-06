@@ -32,7 +32,7 @@ func New(app string) (*Service, error) {
 	if err := c.parseEnv(app); err != nil {
 		return &Service{
 			Config: *c,
-		}, fmt.Errorf("Error parsing env: %v", err)
+		}, fmt.Errorf("error parsing env: %v", err)
 	}
 
 	return &Service{

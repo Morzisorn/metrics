@@ -11,7 +11,7 @@ func GetMetric(name string) (string, error) {
 	s := storage.GetStorage()
 	m, exist := s.GetMetric(name)
 	if !exist {
-		return "", fmt.Errorf("Metric not found")
+		return "", fmt.Errorf("metric not found")
 	}
 
 	return trimTrailingZeros(fmt.Sprintf("%f", m)), nil
@@ -42,7 +42,7 @@ func UpdateMetric(typ, name, value string) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Invalid metric type")
+		return fmt.Errorf("invalid metric type")
 	}
 	return nil
 }
