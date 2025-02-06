@@ -61,7 +61,7 @@ func TestUpdateMetric(t *testing.T) {
 	// Test invalid metric type
 	err = UpdateMetric("invalid_type", "metric_invalid", "123")
 	assert.Error(t, err, "Expected error for invalid metric type")
-	assert.Equal(t, "Invalid metric type", err.Error(), "Expected specific error message")
+	assert.Equal(t, "invalid metric type", err.Error(), "Expected specific error message")
 }
 
 func TestTrimTrailingZeros(t *testing.T) {
