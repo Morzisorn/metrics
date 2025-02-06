@@ -10,6 +10,7 @@ type Storage interface {
 	GetMetrics() map[string]float64
 	UpdateCounter(name, value string) error
 	UpdateGauge(name, value string) error
+	Reset()
 }
 
 type MemStorage struct {
@@ -58,4 +59,8 @@ func (m *MemStorage) UpdateGauge(name, value string) error {
 	m.Metrics[name] = v
 
 	return nil
+}
+
+func (m *MemStorage) Reset() {
+	m.Metrics = make(map[string]float64)
 }

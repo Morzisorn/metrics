@@ -28,8 +28,8 @@ func TestUpdateCounterOK(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
-	Update(c)
+	UpdateMetrics(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusOK, c.Writer.Status())
 	v, exist := s.GetMetric("test")
@@ -50,8 +50,8 @@ func TestUpdateGaugeOK(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
-	Update(c)
+	UpdateMetrics(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusOK, c.Writer.Status())
 	v, exist := s.GetMetric("test")
@@ -70,7 +70,7 @@ func TestUpdateInvalidPath(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusNotFound, c.Writer.Status())
 }
@@ -88,7 +88,7 @@ func TestUpdateInvalidMethod(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusMethodNotAllowed, c.Writer.Status())
 }
@@ -106,7 +106,7 @@ func TestUpdateInvalidContentType(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "incorrect")
 
-	Update(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusMethodNotAllowed, c.Writer.Status())
 }
@@ -124,7 +124,7 @@ func TestUpdateInvalidType(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
 }
@@ -142,7 +142,7 @@ func TestUpdateInvalidGaugeValue(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
 }
@@ -160,7 +160,7 @@ func TestUpdateInvalidCounterValue(t *testing.T) {
 	}
 	c.Request.Header.Set("Content-Type", "text/plain")
 
-	Update(c)
+	UpdateMetrics(c)
 
 	assert.Equal(t, http.StatusBadRequest, c.Writer.Status())
 }

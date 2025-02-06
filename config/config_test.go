@@ -18,7 +18,7 @@ func TestParseFlagsOK(t *testing.T) {
 
 	pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 
-	Conf.ParseFlags()
+	Conf.parseFlags()
 
 	assert.Equal(t, "localhost:9000", Conf.Addr)
 	assert.Equal(t, 5.0, Conf.PollInterval)
@@ -36,6 +36,6 @@ func TestParseFlagsUnknown(t *testing.T) {
 	pflag.CommandLine = pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 
 	assert.Panics(t, func() {
-		Conf.ParseFlags()
+		Conf.parseFlags()
 	}, "Expected panic when parsing unknown flag")
 }

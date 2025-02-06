@@ -9,24 +9,25 @@ import (
 	server "github.com/morzisorn/metrics/internal/server/handlers"
 )
 
-var Conf config.Config
+var Service *config.Service
 
 func createServer() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
 	mux.GET("/", server.GetMetrics)
-	mux.POST("/update/:type/:metric/:value", server.Update)
+	mux.POST("/update/:type/:metric/:value", server.UpdateMetrics)
 	mux.GET("/value/:type/:metric", server.GetMetric)
 	return mux
 }
 
 func runServer(mux *gin.Engine) error {
-	fmt.Println("Running server on", Conf.Addr)
-	return mux.Run(Conf.Addr)
+	fmt.Println("Running server on", Service.Config.Addr)
+	return mux.Run(Service.Config.Addr)
 }
 
 func main() {
-	err := Conf.Init("server")
+	var err error
+	Service, err = config.New("server")
 	if err != nil {
 		panic(err)
 	}

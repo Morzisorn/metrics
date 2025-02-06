@@ -6,27 +6,31 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/morzisorn/metrics/config"
-	"github.com/morzisorn/metrics/internal/agent"
+	client "github.com/morzisorn/metrics/internal/agent/client"
+	agent "github.com/morzisorn/metrics/internal/agent/services"
 )
 
-var Conf config.Config
+var Service *config.Service
 
 func RunAgent() error {
 	now := time.Now()
 	lastReport := time.Now()
 	m := agent.Metrics{}
-	client := resty.New().SetBaseURL(Conf.Addr)
-	fmt.Println("Running agent on", Conf.Addr)
+	c := client.HTTPClient{
+		BaseURL: Service.Config.Addr,
+		Client:  resty.New().SetBaseURL(Service.Config.Addr),
+	}
+	fmt.Println("Running agent on", Service.Config.Addr)
 	for {
-		if time.Since(now).Seconds() >= Conf.PollInterval {
+		if time.Since(now).Seconds() >= Service.Config.PollInterval {
 			now = time.Now()
 			err := m.PollMetrics()
 			if err != nil {
 				return err
 			}
-			if time.Since(lastReport).Seconds() >= Conf.ReportInterval {
+			if time.Since(lastReport).Seconds() >= Service.Config.ReportInterval {
 				lastReport = time.Now()
-				err := m.SendMetrics(client)
+				err := c.SendMetrics(&m)
 				if err != nil {
 					return err
 				}
@@ -36,7 +40,8 @@ func RunAgent() error {
 }
 
 func main() {
-	err := Conf.Init("agent")
+	var err error
+	Service, err = config.New("agent")
 	if err != nil {
 		panic(err)
 	}

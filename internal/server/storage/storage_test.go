@@ -28,3 +28,18 @@ func TestUpdateGauge(t *testing.T) {
 	v, _ := m.GetMetric("test")
 	assert.Equal(t, 2.0, v)
 }
+
+func TestMemStorage_Reset(t *testing.T) {
+	s := GetStorage()
+
+	err := s.UpdateCounter("test_metric", "1")
+	assert.NoError(t, err)
+
+	_, exist := s.GetMetric("test_metric")
+	assert.True(t, exist)
+
+	s.Reset()
+
+	_, exist = s.GetMetric("test_metric")
+	assert.False(t, exist)
+}

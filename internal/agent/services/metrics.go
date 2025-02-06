@@ -3,12 +3,9 @@ package agent
 import (
 	"fmt"
 	"math"
-	"net/http"
 	"reflect"
 	"runtime"
 	"time"
-
-	"github.com/go-resty/resty/v2"
 )
 
 var RuntimeGauges = []string{
@@ -39,6 +36,10 @@ var RuntimeGauges = []string{
 	"StackSys",
 	"Sys",
 	"TotalAlloc",
+}
+
+type MetricsCollector interface {
+	PollMetrics() error
 }
 
 type Metrics struct {
@@ -88,44 +89,4 @@ func GetMetric(memStats reflect.Value, gauge string) (float64, error) {
 
 func GetRandomValue() float64 {
 	return math.Round(float64(time.Now().Nanosecond()) / 1000000)
-}
-
-func SendMetric(client *resty.Client, mType string, gauge string, value float64) error {
-	var url string
-	switch mType {
-	case "counter":
-		url = fmt.Sprintf("%s/update/%s/%s/%d", "http://"+client.BaseURL, "counter", gauge, int64(value))
-	case "gauge":
-		url = fmt.Sprintf("%s/update/%s/%s/%f", "http://"+client.BaseURL, "gauge", gauge, value)
-	default:
-		return fmt.Errorf("unsupported metric type %s", mType)
-	}
-	resp, err := client.R().Post(url)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
-	}
-
-	return nil
-}
-
-func (m *Metrics) SendMetrics(client *resty.Client) error {
-	for gauge, value := range m.RuntimeGauges {
-		err := SendMetric(client, "gauge", gauge, value)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-	err := SendMetric(client, "gauge", "RandomValue", m.RandomValue)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = SendMetric(client, "counter", "PollCount", float64(m.PollCount))
-	if err != nil {
-		fmt.Println(err)
-	}
-	m.PollCount = 0
-	return nil
 }

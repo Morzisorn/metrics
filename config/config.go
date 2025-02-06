@@ -17,27 +17,41 @@ type Config struct {
 	ReportInterval float64
 }
 
-func (c *Config) ParseFlags() {
-	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
-	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "address and port to run agent")
-	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "address and port to run agent")
-
-	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
-		panic(err)
-	}
+type Service struct {
+	Config Config
 }
 
-func (c *Config) Init(app string) error {
-	_, currentFile, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(filepath.Dir(currentFile))
-	envPath := filepath.Join(basePath, "config", ".env")
-
-	err := godotenv.Load(envPath)
-	if err != nil {
+func New(app string) (*Service, error) {
+	envPath := getEncFilePath()
+	if err := loadEnvFile(envPath); err != nil {
 		fmt.Println("Load .env error: ", err)
 	}
 
-	c.ParseFlags()
+	c := &Config{}
+
+	if err := c.parseEnv(app); err != nil {
+		return &Service{
+			Config: *c,
+		}, fmt.Errorf("Error parsing env: %v", err)
+	}
+
+	return &Service{
+		Config: *c,
+	}, nil
+}
+
+func getEncFilePath() string {
+	_, currentFile, _, _ := runtime.Caller(0)
+	basePath := filepath.Dir(filepath.Dir(currentFile))
+	return filepath.Join(basePath, "config", ".env")
+}
+
+func loadEnvFile(envPath string) error {
+	return godotenv.Load(envPath)
+}
+
+func (c *Config) parseEnv(app string) error {
+	c.parseFlags()
 
 	addr := os.Getenv("ADDRESS")
 	if addr != "" {
@@ -60,6 +74,15 @@ func (c *Config) Init(app string) error {
 			c.ReportInterval = report
 		}
 	}
-
 	return nil
+}
+
+func (c *Config) parseFlags() {
+	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
+	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "address and port to run agent")
+	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "address and port to run agent")
+
+	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
+		panic(err)
+	}
 }
