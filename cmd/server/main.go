@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/morzisorn/metrics/config"
 	server "github.com/morzisorn/metrics/internal/server/handlers"
+	"github.com/morzisorn/metrics/internal/server/logger"
 )
 
 var Service *config.Service
@@ -14,14 +16,19 @@ var Service *config.Service
 func createServer() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
-	mux.GET("/", server.GetMetrics)
-	mux.POST("/update/:type/:metric/:value", server.UpdateMetrics)
-	mux.GET("/value/:type/:metric", server.GetMetric)
+	mux.Use(logger.WithLogger())
+
+	server.RegisterMetricsRoutes(mux)
+
 	return mux
 }
 
 func runServer(mux *gin.Engine) error {
-	fmt.Println("Running server on", Service.Config.Addr)
+	if err := logger.Init(); err != nil {
+		return err
+	}
+	logger.Log.Info("Starting server on ", zap.String("address", Service.Config.Addr))
+
 	return mux.Run(Service.Config.Addr)
 }
 

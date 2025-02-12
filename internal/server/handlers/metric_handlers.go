@@ -8,6 +8,12 @@ import (
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
 )
 
+func RegisterMetricsRoutes(mux *gin.Engine) {
+	mux.GET("/", GetMetrics)
+	mux.POST("/update/:type/:metric/:value", UpdateMetrics)
+	mux.GET("/value/:type/:metric", GetMetric)
+}
+
 func GetMetrics(c *gin.Context) {
 
 	html := "<html><head><title>Metrics</title></head><body><h1>Metrics</h1><ul>"
