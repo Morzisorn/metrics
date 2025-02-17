@@ -22,6 +22,7 @@ func (c *HTTPClient) SendMetric(m agent.Metric) error {
 
 	resp, err := c.Client.R().
 		SetBody(m).
+		SetHeader("Content-Type", "application/json").
 		Post(url)
 	if err != nil {
 		return err
