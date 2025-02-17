@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -20,8 +21,13 @@ type HTTPClient struct {
 func (c *HTTPClient) SendMetric(m agent.Metric) error {
 	url := fmt.Sprintf("http://%s/update/", c.BaseURL)
 
+	body, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
 	resp, err := c.Client.R().
-		SetBody(m).
+		SetBody(body).
 		SetHeader("Content-Type", "application/json").
 		Post(url)
 	if err != nil {

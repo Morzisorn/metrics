@@ -8,7 +8,9 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -24,7 +26,7 @@ type Service struct {
 func New(app string) (*Service, error) {
 	envPath := getEncFilePath()
 	if err := loadEnvFile(envPath); err != nil {
-		fmt.Println("Load .env error: ", err)
+		fmt.Printf("Load .env error: %v. Env path: %s\n", err, envPath)
 	}
 
 	c := &Config{}
@@ -43,6 +45,7 @@ func New(app string) (*Service, error) {
 func getEncFilePath() string {
 	_, currentFile, _, _ := runtime.Caller(0)
 	basePath := filepath.Dir(filepath.Dir(currentFile))
+	logger.Log.Info("Base path: ", zap.String("path", basePath))
 	return filepath.Join(basePath, "config", ".env")
 }
 
