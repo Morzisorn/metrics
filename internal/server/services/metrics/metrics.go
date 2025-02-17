@@ -7,6 +7,13 @@ import (
 	"github.com/morzisorn/metrics/internal/server/storage"
 )
 
+type Metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
 func GetMetric(name string) (string, error) {
 	s := storage.GetStorage()
 	m, exist := s.GetMetric(name)
@@ -27,17 +34,18 @@ func GetMetrics() map[string]string {
 	return metricsTrimmed
 }
 
-func UpdateMetric(typ, name, value string) error {
-	switch typ {
+func (m *Metrics) UpdateMetric() error {
+	switch m.MType {
 	case "counter":
 		s := storage.GetStorage()
-		err := s.UpdateCounter(name, value)
+		updated, err := s.UpdateCounter(m.ID, float64(*m.Delta))
 		if err != nil {
 			return err
 		}
+		*m.Delta = int64(updated)
 	case "gauge":
 		s := storage.GetStorage()
-		err := s.UpdateGauge(name, value)
+		err := s.UpdateGauge(m.ID, *m.Value)
 		if err != nil {
 			return err
 		}
