@@ -34,18 +34,20 @@ func TestSendMetrics(t *testing.T) {
 	server, client := setupTestServer()
 	defer server.Close()
 
+	randomValue := 42.42
 	metrics := &agent.Metrics{
-		RuntimeGauges: map[string]float64{
-			"HeapAlloc":  12345.67,
-			"StackInUse": 9876.54,
+		Metrics: map[string]agent.Metric{
+			"HeapAlloc": {
+				ID:    "HeapAlloc",
+				MType: "gauge",
+				Value: &randomValue,
+			},
 		},
-		RandomValue: 42.42,
-		PollCount:   10,
 	}
 
 	err := client.SendMetrics(metrics)
-	assert.NoError(t, err, "SendMetrics должен завершаться без ошибок")
-	assert.Equal(t, int64(0), metrics.PollCount, "PollCount должен сбрасываться в 0")
+	assert.NoError(t, err, "SendMetrics must not return an error")
+	assert.Equal(t, int64(0), metrics.Metrics["HeapAlloc"].Value, "PollCount must be reset to 0")
 }
 
 func TestSendAllMetrics(t *testing.T) {

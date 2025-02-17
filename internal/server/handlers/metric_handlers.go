@@ -13,9 +13,10 @@ const ContentTypeJSON = "application/json"
 
 func RegisterMetricsRoutes(mux *gin.Engine) {
 	mux.GET("/", GetMetrics)
-	mux.POST("/update/:type/:name:/:value", UpdateMetricParams)
+	mux.POST("/update/:type/:name/:value", UpdateMetricParams)
 	mux.POST("/update/", UpdateMetricBody)
-	mux.GET("/value/:type/:metric", GetMetric)
+	mux.GET("/value/:type/:metric", GetMetricParams)
+	mux.POST("/value/", GetMetricBody)
 }
 
 func GetMetrics(c *gin.Context) {
@@ -104,7 +105,7 @@ func UpdateMetricBody(c *gin.Context) {
 		return
 	}
 
-	if *metric.Delta == 0 && *metric.Value == 0 {
+	if metric.Delta == nil && metric.Value == nil {
 		c.String(http.StatusNotFound, "Invalid metric value")
 		return
 	}
@@ -117,16 +118,36 @@ func UpdateMetricBody(c *gin.Context) {
 	c.JSON(http.StatusOK, metric)
 }
 
-func GetMetric(c *gin.Context) {
-	name := c.Params.ByName("metric")
-	if name == "" {
+func GetMetricParams(c *gin.Context) {
+	var metric metrics.Metrics
+	metric.ID = c.Params.ByName("metric")
+	if metric.ID == "" {
 		c.String(http.StatusNotFound, "Invalid metric name")
 		return
 	}
-	value, err := metrics.GetMetric(name)
+	err := metric.GetMetric()
 	if err != nil {
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
-	c.String(http.StatusOK, value)
+	c.JSON(http.StatusOK, metric)
+}
+
+func GetMetricBody(c *gin.Context) {
+	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+		c.String(http.StatusMethodNotAllowed, "Invalid content type")
+		return
+	}
+
+	var metric metrics.Metrics
+	if err := c.BindJSON(&metric); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if metric.ID == "" || metric.MType == "" {
+		c.String(http.StatusNotFound, "Invalid metric ID or Mtype")
+		return
+	}
+
 }

@@ -9,22 +9,43 @@ import (
 
 func TestGetMetric(t *testing.T) {
 	s := storage.GetStorage()
+	tests := []struct {
+		metric Metrics
+		expect float64
+	}{
+		{
+			metric: Metrics{
+				ID:    "test_metric",
+				MType: "gauge",
+				Value: new(float64),
+			},
+			expect: 42.123,
+		},
+		{
+			metric: Metrics{
+				ID:    "non_existent_metric",
+				MType: "gauge",
+				Value: new(float64),
+			},
+			expect: 0,
+		},
+	}
 
 	// Metric exists
-	expectedValue := 42.123
-	err := s.UpdateGauge("test_metric", expectedValue)
+	err := s.UpdateGauge(tests[0].metric.ID, tests[0].expect)
 	assert.NoError(t, err)
 
-	result, err := GetMetric("test_metric")
+	m := Metrics{}
+	err = m.GetMetric()
 
 	assert.NoError(t, err, "Expected no error for existing metric")
-	assert.Equal(t, 42.123, result, "Expected trimmed metric value")
+	assert.Equal(t, tests[0].expect, *tests[0].metric.Value, "Expected trimmed metric value")
 
 	// Metric does not exist
-	result, err = GetMetric("non_existent_metric")
+	err = m.GetMetric()
 
 	assert.Error(t, err, "Expected error for non-existent metric")
-	assert.Equal(t, "", result, "Expected empty string for missing metric")
+	assert.Equal(t, 0, *tests[1].metric.Value, "Expected 0 for missing metric")
 }
 
 func TestGetMetrics(t *testing.T) {

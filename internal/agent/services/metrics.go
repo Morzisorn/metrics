@@ -43,31 +43,53 @@ type MetricsCollector interface {
 }
 
 type Metrics struct {
-	RuntimeGauges map[string]float64
+	Metrics map[string]Metric
+}
 
-	PollCount   int64
-	RandomValue float64
+const (
+	CounterMetric     = "PollCount"   //int64
+	RandomValueMetric = "RandomValue" //float64
+)
+
+type Metric struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
 func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	m.RuntimeGauges = make(map[string]float64)
+	m.Metrics = make(map[string]Metric)
 
 	val := reflect.ValueOf(memStats)
 	for _, gauge := range RuntimeGauges {
-		value, err := GetMetric(val, gauge)
+		metr, err := GetMetric(val, gauge)
 		if err != nil {
 			return err
 		}
-		m.RuntimeGauges[gauge] = value
+		m.Metrics[gauge] = metr
 	}
-	m.RandomValue = GetRandomValue()
-	m.PollCount++
+
+	m.Metrics[RandomValueMetric] = Metric{
+		ID:    RandomValueMetric,
+		MType: "gauge",
+		Value: GetRandomValue(),
+	}
+
+	var counter int64 = 1
+
+	m.Metrics[CounterMetric] = Metric{
+		ID:    CounterMetric,
+		MType: "counter",
+		Delta: &counter,
+	}
+
 	return nil
 }
 
-func GetMetric(memStats reflect.Value, gauge string) (float64, error) {
+func GetMetric(memStats reflect.Value, gauge string) (Metric, error) {
 	field := memStats.FieldByName(gauge)
 	if field.IsValid() {
 		var value float64
@@ -79,14 +101,19 @@ func GetMetric(memStats reflect.Value, gauge string) (float64, error) {
 		case reflect.Float64:
 			value = field.Float()
 		default:
-			return 0, fmt.Errorf("unsupported type %s", field.Kind())
+			return Metric{}, fmt.Errorf("unsupported type %s", field.Kind())
 		}
-		return value, nil
+		return Metric{
+			ID:    gauge,
+			MType: "gauge",
+			Value: &value,
+		}, nil
 	} else {
-		return 0, fmt.Errorf("unsupported type %s", field.Kind())
+		return Metric{}, fmt.Errorf("unsupported type %s", field.Kind())
 	}
 }
 
-func GetRandomValue() float64 {
-	return math.Round(float64(time.Now().Nanosecond()) / 1000000)
+func GetRandomValue() *float64 {
+	v := math.Round(float64(time.Now().Nanosecond()) / 1000000)
+	return &v
 }

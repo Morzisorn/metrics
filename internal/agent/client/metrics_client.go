@@ -17,17 +17,12 @@ type HTTPClient struct {
 	Client  *resty.Client
 }
 
-func (c *HTTPClient) SendMetric(typ string, name string, value float64) error {
-	var url string
-	switch typ {
-	case "counter":
-		url = fmt.Sprintf("%s/update/%s/%s/%d", "http://"+c.BaseURL, "counter", name, int64(value))
-	case "gauge":
-		url = fmt.Sprintf("%s/update/%s/%s/%f", "http://"+c.BaseURL, "gauge", name, value)
-	default:
-		return fmt.Errorf("unsupported metric type %s", typ)
-	}
-	resp, err := c.Client.R().Post(url)
+func (c *HTTPClient) SendMetric(m agent.Metric) error {
+	url := fmt.Sprintf("http://%s/update/", c.BaseURL)
+
+	resp, err := c.Client.R().
+		SetBody(m).
+		Post(url)
 	if err != nil {
 		return err
 	}
@@ -39,20 +34,17 @@ func (c *HTTPClient) SendMetric(typ string, name string, value float64) error {
 }
 
 func (c *HTTPClient) SendMetrics(m *agent.Metrics) error {
-	for gauge, value := range m.RuntimeGauges {
-		err := c.SendMetric("gauge", gauge, value)
+	for name, metric := range m.Metrics {
+		err := c.SendMetric(metric)
 		if err != nil {
 			fmt.Println(err)
 		}
+		if name == agent.CounterMetric {
+			var zero int64 = 0
+			metric.Delta = &zero
+			m.Metrics[agent.CounterMetric] = metric
+		}
 	}
-	err := c.SendMetric("gauge", "RandomValue", m.RandomValue)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = c.SendMetric("counter", "PollCount", float64(m.PollCount))
-	if err != nil {
-		fmt.Println(err)
-	}
-	m.PollCount = 0
+
 	return nil
 }

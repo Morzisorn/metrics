@@ -14,14 +14,22 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func GetMetric(name string) (string, error) {
+func (m *Metrics) GetMetric() error {
 	s := storage.GetStorage()
-	m, exist := s.GetMetric(name)
+	val, exist := s.GetMetric(m.ID)
 	if !exist {
-		return "", fmt.Errorf("metric not found")
+		return fmt.Errorf("metric not found")
+	}
+	switch m.MType {
+	case "counter":
+		*m.Delta = int64(val)
+	case "gauge":
+		*m.Value = val
+	default:
+		return fmt.Errorf("invalid metric type")
 	}
 
-	return trimTrailingZeros(fmt.Sprintf("%f", m)), nil
+	return nil
 }
 
 func GetMetrics() map[string]string {
