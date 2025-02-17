@@ -125,6 +125,9 @@ func GetMetricParams(c *gin.Context) {
 		c.String(http.StatusNotFound, "Invalid metric name")
 		return
 	}
+
+	metric.MType = c.Params.ByName("type")
+
 	err := metric.GetMetric()
 	if err != nil {
 		c.String(http.StatusNotFound, err.Error())
