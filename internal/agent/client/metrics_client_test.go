@@ -47,7 +47,7 @@ func TestSendMetrics(t *testing.T) {
 
 	err := client.SendMetrics(metrics)
 	assert.NoError(t, err, "SendMetrics must not return an error")
-	assert.Equal(t, int64(0), metrics.Metrics["HeapAlloc"].Value, "PollCount must be reset to 0")
+	assert.Equal(t, randomValue, *metrics.Metrics["HeapAlloc"].Value, "Incorrect value after sending metrics")
 }
 
 func TestSendAllMetrics(t *testing.T) {

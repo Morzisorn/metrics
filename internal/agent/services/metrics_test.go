@@ -14,7 +14,7 @@ func TestPollAllMetrics(t *testing.T) {
 	m := Metrics{}
 	require.NoError(t, m.PollMetrics())
 	assert.NotEmpty(t, m.Metrics["HeapAlloc"])
-	assert.Equal(t, int64(1), m.Metrics[CounterMetric].Delta)
+	assert.Equal(t, int64(1), *m.Metrics[CounterMetric].Delta)
 }
 
 func TestGetMetric(t *testing.T) {
@@ -31,9 +31,9 @@ func TestGetMetric(t *testing.T) {
 		expected float64
 		wantErr  bool
 	}{
-		{"Alloc", "Alloc", 123456, false},
+		{"Alloc", "Alloc", 123456.0, false},
 		{"GCCPUFraction", "GCCPUFraction", 0.42, false},
-		{"NumGC", "NumGC", 99, false},
+		{"NumGC", "NumGC", 99.0, false},
 		{"InvalidField", "NonExistent", 0, true}, // Проверка для несуществующего поля
 	}
 
@@ -45,7 +45,7 @@ func TestGetMetric(t *testing.T) {
 				assert.Error(t, err, fmt.Sprintf("ожидалась ошибка для %s", tt.gauge))
 			} else {
 				assert.NoError(t, err, fmt.Sprintf("ошибки быть не должно для %s", tt.gauge))
-				assert.Equal(t, tt.expected, got, fmt.Sprintf("значение должно быть %v для %s", tt.expected, tt.gauge))
+				assert.Equal(t, tt.expected, *got.Value, fmt.Sprintf("значение должно быть %v для %s", tt.expected, tt.gauge))
 			}
 		})
 	}

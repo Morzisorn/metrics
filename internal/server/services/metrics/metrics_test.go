@@ -27,7 +27,7 @@ func TestGetMetric(t *testing.T) {
 				MType: "gauge",
 				Value: new(float64),
 			},
-			expect: 0,
+			expect: float64(0),
 		},
 	}
 
@@ -35,17 +35,16 @@ func TestGetMetric(t *testing.T) {
 	err := s.UpdateGauge(tests[0].metric.ID, tests[0].expect)
 	assert.NoError(t, err)
 
-	m := Metrics{}
-	err = m.GetMetric()
+	err = tests[0].metric.GetMetric()
 
 	assert.NoError(t, err, "Expected no error for existing metric")
 	assert.Equal(t, tests[0].expect, *tests[0].metric.Value, "Expected trimmed metric value")
 
 	// Metric does not exist
-	err = m.GetMetric()
+	err = tests[1].metric.GetMetric()
 
 	assert.Error(t, err, "Expected error for non-existent metric")
-	assert.Equal(t, 0, *tests[1].metric.Value, "Expected 0 for missing metric")
+	assert.Equal(t, tests[1].expect, *tests[1].metric.Value, "Expected 0 for missing metric")
 }
 
 func TestGetMetrics(t *testing.T) {
@@ -115,7 +114,7 @@ func TestUpdateMetric(t *testing.T) {
 
 	err = tests[1].metric.UpdateMetric()
 	assert.NoError(t, err, "Expected no error for updating gauge metric")
-	assert.Equal(t, 15.678, tests[1].metric, "Expected updated metric")
+	assert.Equal(t, 15.678, *tests[1].metric.Value, "Expected updated metric")
 
 	// Test invalid metric type
 	*tests[2].metric.Delta = 123
