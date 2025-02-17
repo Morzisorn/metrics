@@ -13,7 +13,7 @@ const ContentTypeJSON = "application/json"
 
 func RegisterMetricsRoutes(mux *gin.Engine) {
 	mux.GET("/", GetMetrics)
-	mux.POST("/update/:type/:name/:value", UpdateMetricParams)
+	mux.POST("/update/:type/:metric/:value", UpdateMetricParams)
 	mux.POST("/update/", UpdateMetricBody)
 	mux.GET("/value/:type/:metric", GetMetricParams)
 	mux.POST("/value/", GetMetricBody)
