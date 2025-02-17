@@ -133,7 +133,15 @@ func GetMetricParams(c *gin.Context) {
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, metric)
+
+	switch metric.MType {
+	case "counter":
+		c.JSON(http.StatusOK, metric.Delta)
+	case "gauge":
+		c.JSON(http.StatusOK, metric.Value)
+	default:
+		c.String(http.StatusBadRequest, "Invalid metric type")
+	}
 }
 
 func GetMetricBody(c *gin.Context) {
