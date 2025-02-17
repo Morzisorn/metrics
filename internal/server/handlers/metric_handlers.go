@@ -161,4 +161,11 @@ func GetMetricBody(c *gin.Context) {
 		return
 	}
 
+	err := metric.GetMetric()
+	if err != nil {
+		c.String(http.StatusNotFound, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, metric)
 }
