@@ -22,9 +22,10 @@ func (m *Metrics) GetMetric() error {
 	}
 	switch m.MType {
 	case "counter":
-		*m.Delta = int64(val)
+		v := int64(val)
+		m.Delta = &v
 	case "gauge":
-		*m.Value = val
+		m.Value = &val
 	default:
 		return fmt.Errorf("invalid metric type")
 	}
