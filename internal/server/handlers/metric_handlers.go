@@ -6,7 +6,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"go.uber.org/zap"
 )
 
 const ContentTypeJSON = "application/json"
@@ -146,23 +148,27 @@ func GetMetricParams(c *gin.Context) {
 
 func GetMetricBody(c *gin.Context) {
 	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+		logger.Log.Info("Invalid content type", zap.String("Content-Type :", c.Request.Header.Get("Content-Type")))
 		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return
 	}
 
 	var metric metrics.Metrics
 	if err := c.BindJSON(&metric); err != nil {
+		logger.Log.Info("Invalid request body", zap.Error(err))
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if metric.ID == "" || metric.MType == "" {
+		logger.Log.Info("Invalid metric ID or Mtype", zap.String("ID", metric.ID), zap.String("MType", metric.MType))
 		c.String(http.StatusNotFound, "Invalid metric ID or Mtype")
 		return
 	}
 
 	err := metric.GetMetric()
 	if err != nil {
+		logger.Log.Info("Metric not found", zap.Error(err))
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
