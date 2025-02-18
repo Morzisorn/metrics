@@ -62,11 +62,19 @@ func getProjectRoot() (string, error) {
 
 func getEncFilePath() string {
 	basePath, err := getProjectRoot()
+	basePath = removeDoubleMetrics(basePath)
 	if err != nil {
 		logger.Log.Error("Error getting project root ", zap.Error(err))
 		return ".env"
 	}
 	return filepath.Join(basePath, "config", ".env")
+}
+
+func removeDoubleMetrics(path string) string {
+	if filepath.Base(filepath.Dir(path)) == "metrics" && filepath.Base(path) == "metrics" {
+		return filepath.Dir(path) // Поднимаемся на уровень выше
+	}
+	return path
 }
 
 func loadEnvFile(envPath string) error {
