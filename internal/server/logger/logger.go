@@ -37,11 +37,21 @@ func WithLogger() gin.HandlerFunc {
 
 		duration := time.Since(start)
 
-		Log.Info("Request completed",
-			zap.String("duration", duration.String()),
-			zap.String("status", strconv.Itoa(c.Writer.Status())),
-			zap.String("size", strconv.Itoa(c.Writer.Size())),
-		)
+		if c.Writer.Status() == 200 {
+			Log.Info("Request completed",
+				zap.String("duration", duration.String()),
+				zap.String("status", strconv.Itoa(c.Writer.Status())),
+				zap.String("size", strconv.Itoa(c.Writer.Size())),
+			)
+		} else {
+			Log.Error("Request failed",
+				zap.String("URI", c.Request.URL.Path),
+				zap.String("method", c.Request.Method),
+				zap.String("status", strconv.Itoa(c.Writer.Status())),
+				zap.String("size", strconv.Itoa(c.Writer.Size())),
+				zap.String("body", c.Errors.String()),
+			)
+		}
 
 	}
 }
