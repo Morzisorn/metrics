@@ -54,6 +54,12 @@ func (m *Metrics) UpdateMetric() error {
 		*m.Delta = int64(updated)
 	case "gauge":
 		s := storage.GetStorage()
+		/*
+			if m.ID == "RandomValue" {
+				value := GetRandomValue()
+				m.Value = &value
+			}
+		*/
 		err := s.UpdateGauge(m.ID, *m.Value)
 		if err != nil {
 			return err

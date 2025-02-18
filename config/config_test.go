@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/pflag"
@@ -38,4 +39,13 @@ func TestParseFlagsUnknown(t *testing.T) {
 	assert.Panics(t, func() {
 		Conf.parseFlags()
 	}, "Expected panic when parsing unknown flag")
+}
+
+func TestGetEncFilePath(t *testing.T) {
+	wd, _ := os.Getwd()
+	expectedPath := filepath.Join(wd, ".env")
+
+	actualPath := getEncFilePath()
+
+	assert.Equal(t, expectedPath, actualPath, "Путь к .env файлу должен совпадать")
 }

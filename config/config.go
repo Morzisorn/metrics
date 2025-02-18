@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -42,10 +41,31 @@ func New(app string) (*Service, error) {
 	}, nil
 }
 
+func getProjectRoot() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(wd, "go.mod")); err == nil {
+			return wd, nil
+		}
+
+		parent := filepath.Dir(wd)
+		if parent == wd {
+			return "", fmt.Errorf("project root not found")
+		}
+		wd = parent
+	}
+}
+
 func getEncFilePath() string {
-	_, currentFile, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(filepath.Dir(currentFile))
-	logger.Log.Info("Base path: ", zap.String("path", basePath))
+	basePath, err := getProjectRoot()
+	if err != nil {
+		logger.Log.Error("Error getting project root ", zap.Error(err))
+		return ".env"
+	}
 	return filepath.Join(basePath, "config", ".env")
 }
 
