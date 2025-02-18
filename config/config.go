@@ -81,20 +81,25 @@ func (c *Config) parseEnv(app string) error {
 		c.Addr = addr
 	}
 	if app == "agent" {
-		poll, err := strconv.ParseFloat(os.Getenv("POLL_INTERVAL"), 64)
-		if err != nil {
-			fmt.Println("Error parsing POLL_INTERVAL: ", err)
+		p := os.Getenv("POLL_INTERVAL")
+		if p != "" {
+			poll, err := strconv.ParseFloat(p, 64)
+			if err != nil {
+				fmt.Println("Error parsing POLL_INTERVAL: ", err)
+			}
+			if poll != 0 {
+				c.PollInterval = poll
+			}
 		}
-		if poll != 0 {
-			c.PollInterval = poll
-		}
-
-		report, err := strconv.ParseFloat(os.Getenv("REPORT_INTERVAL"), 64)
-		if err != nil {
-			fmt.Println("Error parsing REPORT_INTERVAL: ", err)
-		}
-		if report != 0 {
-			c.ReportInterval = report
+		r := os.Getenv("REPORT_INTERVAL")
+		if r != "" {
+			report, err := strconv.ParseFloat(r, 64)
+			if err != nil {
+				fmt.Println("Error parsing REPORT_INTERVAL: ", err)
+			}
+			if report != 0 {
+				c.ReportInterval = report
+			}
 		}
 	}
 	return nil
