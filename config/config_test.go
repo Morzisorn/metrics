@@ -49,3 +49,25 @@ func TestGetEncFilePath(t *testing.T) {
 
 	assert.Equal(t, expectedPath, actualPath, "Путь к .env файлу должен совпадать")
 }
+func TestNew(t *testing.T) {
+	// Устанавливаем переменные окружения для тестов
+	os.Setenv("ADDRESS", "localhost:9090")
+	os.Setenv("POLL_INTERVAL", "5")
+	os.Setenv("REPORT_INTERVAL", "15")
+	defer func() {
+		os.Unsetenv("ADDRESS")
+		os.Unsetenv("POLL_INTERVAL")
+		os.Unsetenv("REPORT_INTERVAL")
+	}()
+
+	// Вызываем New
+	service, err := New("agent")
+
+	// Проверяем, что нет ошибки
+	assert.NoError(t, err)
+
+	// Проверяем, что конфигурация корректно загружена
+	assert.Equal(t, "localhost:9090", service.Config.Addr)
+	assert.Equal(t, 5.0, service.Config.PollInterval)
+	assert.Equal(t, 15.0, service.Config.ReportInterval)
+}
