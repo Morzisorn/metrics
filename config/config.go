@@ -24,16 +24,19 @@ type Service struct {
 
 func New(app string) (*Service, error) {
 	envPath := getEncFilePath()
-	if err := loadEnvFile(envPath); err != nil {
-		fmt.Printf("Load .env error: %v. Env path: %s\n", err, envPath)
-	}
+
+	err := loadEnvFile(envPath)
 
 	c := &Config{}
 
-	if err := c.parseEnv(app); err != nil {
-		return &Service{
-			Config: *c,
-		}, fmt.Errorf("error parsing env: %v", err)
+	c.parseFlags()
+
+	if err == nil {
+		if err := c.parseEnv(app); err != nil {
+			return &Service{
+				Config: *c,
+			}, fmt.Errorf("error parsing env: %v", err)
+		}
 	}
 
 	return &Service{
@@ -74,8 +77,6 @@ func loadEnvFile(envPath string) error {
 }
 
 func (c *Config) parseEnv(app string) error {
-	c.parseFlags()
-
 	addr := os.Getenv("ADDRESS")
 	if addr != "" {
 		c.Addr = addr
