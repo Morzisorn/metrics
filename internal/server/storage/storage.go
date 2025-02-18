@@ -26,6 +26,7 @@ func GetStorage() Storage {
 		instance = &MemStorage{
 			Metrics: make(map[string]float64),
 		}
+		instance.(*MemStorage).Metrics["RandomValue"] = 5.6
 	})
 	return instance
 }
