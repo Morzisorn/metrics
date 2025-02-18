@@ -50,6 +50,7 @@ func WithLogger() gin.HandlerFunc {
 				zap.String("status", strconv.Itoa(c.Writer.Status())),
 				zap.String("size", strconv.Itoa(c.Writer.Size())),
 				zap.String("body", c.Errors.String()),
+				zap.String("duration", duration.String()),
 			)
 		}
 
