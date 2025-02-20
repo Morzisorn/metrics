@@ -64,6 +64,6 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 
 func (g *gzipResponseWriter) Close() {
 	if gz, ok := g.Writer.(*gzip.Writer); ok {
-		gz.Close() // Закрываем gzip.Writer, чтобы завершить поток
+		gz.Close()
 	}
 }
