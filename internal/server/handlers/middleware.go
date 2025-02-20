@@ -45,16 +45,15 @@ func GzipMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		buf := new(bytes.Buffer)
-		c.Writer = &gzipResponseWriter{ResponseWriter: c.Writer, Writer: gzip.NewWriter(buf), buffer: buf}
-
 		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+			buf := new(bytes.Buffer)
+			c.Writer = &gzipResponseWriter{ResponseWriter: c.Writer, Writer: gzip.NewWriter(buf), buffer: buf}
 			if strings.Contains(c.GetHeader("Content-Type"), "application/json") || strings.Contains(c.GetHeader("Content-Type"), "text/html") {
 				c.Writer.Header().Add("Content-Encoding", "gzip")
 				c.Writer.(*gzipResponseWriter).Close()
 			}
+			c.Writer.Write(buf.Bytes())
 		}
-		c.Writer.Write(buf.Bytes())
 	}
 }
 
