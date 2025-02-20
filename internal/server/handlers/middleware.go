@@ -49,7 +49,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		c.Writer = &gzipResponseWriter{ResponseWriter: c.Writer, Writer: gzip.NewWriter(buf), buffer: buf}
 
 		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-			if strings.Contains(c.GetHeader("Content-Type"), "application/json") || strings.Contains(c.GetHeader("Accept-Content"), "text/html") {
+			if strings.Contains(c.GetHeader("Content-Type"), "application/json") || strings.Contains(c.GetHeader("Content-Type"), "text/html") {
 				c.Writer.Header().Add("Content-Encoding", "gzip")
 				c.Writer.(*gzipResponseWriter).Close()
 			}
