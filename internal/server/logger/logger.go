@@ -24,7 +24,7 @@ func Init() error {
 	return nil
 }
 
-func WithLogger() gin.HandlerFunc {
+func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-resty/resty/v2"
+	"github.com/morzisorn/metrics/config"
 	agent "github.com/morzisorn/metrics/internal/agent/services"
+	"resty.dev/v3"
 )
 
 type MetricsClient interface {
@@ -16,6 +17,24 @@ type MetricsClient interface {
 type HTTPClient struct {
 	BaseURL string
 	Client  *resty.Client
+}
+
+func NewClient(s *config.Service) *HTTPClient {
+	c := HTTPClient{
+		BaseURL: s.Config.Addr,
+		Client:  resty.New().SetBaseURL(s.Config.Addr),
+	}
+
+	c.Client.AddRequestMiddleware(func(client *resty.Client, req *resty.Request) error {
+		err := gzipMiddleware(req)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return &c
 }
 
 func (c *HTTPClient) SendMetric(m agent.Metric) error {

@@ -16,7 +16,10 @@ var Service *config.Service
 func createServer() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
-	mux.Use(logger.WithLogger())
+	mux.Use(
+		logger.LoggerMiddleware(),
+		server.GzipMiddleware(),
+	)
 
 	server.RegisterMetricsRoutes(mux)
 

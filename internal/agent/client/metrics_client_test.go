@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-resty/resty/v2"
 	agent "github.com/morzisorn/metrics/internal/agent/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"resty.dev/v3"
 )
 
 func setupTestServer() (*httptest.Server, *HTTPClient) {
