@@ -16,6 +16,7 @@ import (
 type gzipResponseWriter struct {
 	gin.ResponseWriter
 	Writer io.Writer
+	buffer *bytes.Buffer
 }
 
 func GzipMiddleware() gin.HandlerFunc {
@@ -39,23 +40,26 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 
 		buf := new(bytes.Buffer)
-		gz := gzip.NewWriter(buf)
-		defer gz.Close()
-
-		gzw := &gzipResponseWriter{ResponseWriter: c.Writer, Writer: gz}
-		c.Writer = gzw
+		c.Writer = &gzipResponseWriter{ResponseWriter: c.Writer, Writer: gzip.NewWriter(buf), buffer: buf}
 
 		c.Next()
 
 		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
 			if strings.Contains(c.GetHeader("Accept-Content"), "application/json") || strings.Contains(c.GetHeader("Accept-Content"), "text/html") {
-				c.Header("Content-Encoding", "gzip")
-				gz.Close()
+				c.Writer.Header().Set("Content-Encoding", "gzip")
+				c.Writer.(*gzipResponseWriter).Close()
 			}
 		}
+		c.Writer.Write(buf.Bytes())
 	}
 }
 
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	return g.Writer.Write(b)
+}
+
+func (g *gzipResponseWriter) Close() {
+	if gz, ok := g.Writer.(*gzip.Writer); ok {
+		gz.Close() // Закрываем gzip.Writer, чтобы завершить поток
+	}
 }
