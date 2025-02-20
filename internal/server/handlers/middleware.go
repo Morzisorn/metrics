@@ -44,13 +44,15 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-			if strings.Contains(c.GetHeader("Accept-Content"), "application/json") || strings.Contains(c.GetHeader("Accept-Content"), "text/html") {
-				c.Writer.Header().Set("Content-Encoding", "gzip")
-				c.Writer.(*gzipResponseWriter).Close()
+		if c.Writer.Status() == 200 {
+			if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+				if strings.Contains(c.GetHeader("Accept-Content"), "application/json") || strings.Contains(c.GetHeader("Accept-Content"), "text/html") {
+					c.Writer.Header().Set("Content-Encoding", "gzip")
+					c.Writer.(*gzipResponseWriter).Close()
+				}
 			}
+			c.Writer.Write(buf.Bytes())
 		}
-		c.Writer.Write(buf.Bytes())
 	}
 }
 
