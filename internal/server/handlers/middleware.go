@@ -50,7 +50,7 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
 			if strings.Contains(c.GetHeader("Accept-Content"), "application/json") || strings.Contains(c.GetHeader("Accept-Content"), "text/html") {
-				c.Writer.Header().Set("Content-Encoding", "gzip")
+				c.Writer.Header().Add("Content-Encoding", "gzip")
 				c.Writer.(*gzipResponseWriter).Close()
 			}
 		}
