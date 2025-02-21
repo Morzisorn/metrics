@@ -59,7 +59,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		c.Next()
 		gzw.Close()
 
-		if gzw.status != http.StatusOK {
+		if gzw.status < 200 || gzw.status >= 300 {
 			c.Writer = gzw.ResponseWriter
 			c.Writer.WriteHeader(gzw.status)
 			_, err := c.Writer.Write(buf.Bytes())
@@ -70,7 +70,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 
 		contentType := c.Writer.Header().Get("Content-Type")
-		if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "text/html") {
+		if !(strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")) {
 			c.Writer = gzw.ResponseWriter
 			c.Writer.WriteHeader(gzw.status)
 			_, err := c.Writer.Write(buf.Bytes())
@@ -83,6 +83,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("Content-Encoding", "gzip")
 		c.Writer.WriteHeader(gzw.status)
 
+		gzw.Close()
 		c.Writer = gzw.ResponseWriter
 		_, err := c.Writer.Write(buf.Bytes())
 		if err != nil {
@@ -90,10 +91,12 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 	}
 }
-
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	if g.status == 0 {
 		g.status = http.StatusOK
+	}
+	if gz, ok := g.writer.(*gzip.Writer); ok {
+		return gz.Write(b)
 	}
 	return g.writer.Write(b)
 }
