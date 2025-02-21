@@ -37,7 +37,7 @@ func TestGzipResponseWriter_Write(t *testing.T) {
 	rec := httptest.NewRecorder()
 	wrappedRec := &testResponseWriter{rec}
 
-	gzw := &gzipResponseWriter{ResponseWriter: wrappedRec, Writer: gz, buffer: &buf}
+	gzw := &gzipResponseWriter{ResponseWriter: wrappedRec, writer: gz, buffer: &buf}
 
 	data := []byte("Test data!")
 
@@ -58,7 +58,7 @@ func TestGzipResponseWriter_Close(t *testing.T) {
 	rec := httptest.NewRecorder()
 	wrappedRec := &testResponseWriter{rec}
 
-	gzw := &gzipResponseWriter{ResponseWriter: wrappedRec, Writer: gz, buffer: &buf}
+	gzw := &gzipResponseWriter{ResponseWriter: wrappedRec, writer: gz, buffer: &buf}
 
 	gzw.Close()
 

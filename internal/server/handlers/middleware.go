@@ -15,8 +15,9 @@ import (
 
 type gzipResponseWriter struct {
 	gin.ResponseWriter
-	Writer io.Writer
+	writer io.Writer
 	buffer *bytes.Buffer
+	status int
 }
 
 func GzipMiddleware() gin.HandlerFunc {
@@ -48,33 +49,62 @@ func GzipMiddleware() gin.HandlerFunc {
 		gz := gzip.NewWriter(buf)
 		defer gz.Close()
 
-		gzw := &gzipResponseWriter{ResponseWriter: c.Writer, buffer: buf, Writer: gz}
+		gzw := &gzipResponseWriter{
+			ResponseWriter: c.Writer,
+			buffer:         buf,
+			writer:         gz,
+			status:         0,
+		}
+
 		c.Writer = gzw
-		defer gzw.Close()
 
 		c.Next()
 
-		if c.Writer.Status() != http.StatusOK {
+		if gzw.status != http.StatusOK {
+			c.Writer = gzw.ResponseWriter
+			c.Writer.WriteHeader(gzw.status)
+			_, err := c.Writer.Write(buf.Bytes())
+			if err != nil {
+				logger.Log.Error("Error writing response", zap.Error(err))
+			}
 			return
 		}
-		contentType := c.GetHeader("Content-Type")
+
+		contentType := c.Writer.Header().Get("Content-Type")
 		if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "text/html") {
 			c.Writer = gzw.ResponseWriter
-			c.Writer.Write(buf.Bytes())
+			c.Writer.WriteHeader(gzw.status)
+			_, err := c.Writer.Write(buf.Bytes())
+			if err != nil {
+				logger.Log.Error("Error writing response", zap.Error(err))
+			}
 			return
 		}
 
 		c.Writer.Header().Set("Content-Encoding", "gzip")
-		c.Writer.Write(buf.Bytes())
+		c.Writer.WriteHeader(gzw.status)
+
+		_, err := c.Writer.Write(buf.Bytes())
+		if err != nil {
+			logger.Log.Error("Error writing response", zap.Error(err))
+		}
 	}
 }
 
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
-	return g.Writer.Write(b)
+	if g.status == 0 {
+		g.status = http.StatusOK
+	}
+	return g.writer.Write(b)
 }
 
 func (g *gzipResponseWriter) Close() {
-	if gz, ok := g.Writer.(*gzip.Writer); ok {
+	if gz, ok := g.writer.(*gzip.Writer); ok {
 		gz.Close()
 	}
+}
+
+func (g *gzipResponseWriter) WriteHeader(code int) {
+	g.status = code                    // Сохраняем код ответа
+	g.ResponseWriter.WriteHeader(code) // Передаём оригинальному ResponseWriter
 }
