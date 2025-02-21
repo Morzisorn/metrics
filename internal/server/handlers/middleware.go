@@ -58,6 +58,8 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		c.Writer = gzw
 
+		defer gzw.Close()
+
 		c.Next()
 
 		if gzw.status != http.StatusOK {
