@@ -47,7 +47,6 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		buf := new(bytes.Buffer)
 		gz := gzip.NewWriter(buf)
-		defer gz.Close()
 
 		gzw := &gzipResponseWriter{
 			ResponseWriter: c.Writer,
@@ -57,10 +56,8 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 
 		c.Writer = gzw
-
-		defer gzw.Close()
-
 		c.Next()
+		gzw.Close()
 
 		if gzw.status != http.StatusOK {
 			c.Writer = gzw.ResponseWriter
@@ -86,6 +83,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("Content-Encoding", "gzip")
 		c.Writer.WriteHeader(gzw.status)
 
+		c.Writer = gzw.ResponseWriter
 		_, err := c.Writer.Write(buf.Bytes())
 		if err != nil {
 			logger.Log.Error("Error writing response", zap.Error(err))
