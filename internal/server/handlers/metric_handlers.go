@@ -42,7 +42,7 @@ func UpdateMetricParams(c *gin.Context) {
 		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return
 	}
-	var metric metrics.Metrics
+	var metric metrics.Metric
 	metric.ID = c.Param("metric")
 	if metric.ID == "" {
 		c.String(http.StatusNotFound, "Invalid metric name")
@@ -96,7 +96,7 @@ func UpdateMetricBody(c *gin.Context) {
 		return
 	}
 
-	var metric metrics.Metrics
+	var metric metrics.Metric
 	if err := c.BindJSON(&metric); err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return
@@ -121,7 +121,7 @@ func UpdateMetricBody(c *gin.Context) {
 }
 
 func GetMetricParams(c *gin.Context) {
-	var metric metrics.Metrics
+	var metric metrics.Metric
 	metric.ID = c.Params.ByName("metric")
 	if metric.ID == "" {
 		c.String(http.StatusNotFound, "Invalid metric name")
@@ -153,7 +153,7 @@ func GetMetricBody(c *gin.Context) {
 		return
 	}
 
-	var metric metrics.Metrics
+	var metric metrics.Metric
 	if err := c.BindJSON(&metric); err != nil {
 		logger.Log.Info("Invalid request body", zap.Error(err))
 		c.String(http.StatusBadRequest, err.Error())

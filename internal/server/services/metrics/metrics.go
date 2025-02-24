@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/storage"
 )
 
-type Metrics struct {
+type Metric struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func (m *Metrics) GetMetric() error {
+func (m *Metric) GetMetric() error {
 	s := storage.GetStorage()
 	val, exist := s.GetMetric(m.ID)
 	if !exist {
@@ -43,17 +44,17 @@ func GetMetrics() map[string]string {
 	return metricsTrimmed
 }
 
-func (m *Metrics) UpdateMetric() error {
+func (m *Metric) UpdateMetric() error {
+	s := storage.GetStorage()
+
 	switch m.MType {
 	case "counter":
-		s := storage.GetStorage()
 		updated, err := s.UpdateCounter(m.ID, float64(*m.Delta))
 		if err != nil {
 			return err
 		}
 		*m.Delta = int64(updated)
 	case "gauge":
-		s := storage.GetStorage()
 		err := s.UpdateGauge(m.ID, *m.Value)
 		if err != nil {
 			return err
@@ -61,6 +62,17 @@ func (m *Metrics) UpdateMetric() error {
 	default:
 		return fmt.Errorf("invalid metric type")
 	}
+
+	service := config.GetService("server")
+	if service.Config.StoreInterval == 0 {
+		file := storage.GetFileStorage()
+		metrics := s.GetMetrics()
+		err := file.WriteMetrics(&metrics)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

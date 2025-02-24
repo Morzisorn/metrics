@@ -10,11 +10,11 @@ import (
 func TestGetMetric(t *testing.T) {
 	s := storage.GetStorage()
 	tests := []struct {
-		metric Metrics
+		metric Metric
 		expect float64
 	}{
 		{
-			metric: Metrics{
+			metric: Metric{
 				ID:    "test_metric",
 				MType: "gauge",
 				Value: new(float64),
@@ -22,7 +22,7 @@ func TestGetMetric(t *testing.T) {
 			expect: 42.123,
 		},
 		{
-			metric: Metrics{
+			metric: Metric{
 				ID:    "non_existent_metric",
 				MType: "gauge",
 				Value: new(float64),
@@ -72,11 +72,11 @@ func TestGetMetrics(t *testing.T) {
 
 func TestUpdateMetric(t *testing.T) {
 	tests := []struct {
-		metric Metrics
+		metric Metric
 		err    string
 	}{
 		{
-			metric: Metrics{
+			metric: Metric{
 				MType: "counter",
 				ID:    "counter_metric",
 				Delta: new(int64),
@@ -84,7 +84,7 @@ func TestUpdateMetric(t *testing.T) {
 			err: "",
 		},
 		{
-			metric: Metrics{
+			metric: Metric{
 				MType: "gauge",
 				ID:    "gauge_metric",
 				Value: new(float64),
@@ -92,7 +92,7 @@ func TestUpdateMetric(t *testing.T) {
 			err: "",
 		},
 		{
-			metric: Metrics{
+			metric: Metric{
 				MType: "invalid_type",
 				ID:    "metric_invalid",
 				Delta: new(int64),
