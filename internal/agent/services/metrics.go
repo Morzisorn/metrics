@@ -2,7 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"math"
+	"math/rand"
 	"reflect"
 	"runtime"
 	"time"
@@ -113,7 +113,9 @@ func GetMetric(memStats reflect.Value, gauge string) (Metric, error) {
 	}
 }
 
+var rng = rand.New(rand.NewSource(time.Now().UnixNano())) // Создаём генератор случайных чисел
+
 func GetRandomValue() *float64 {
-	v := math.Round(float64(time.Now().Nanosecond()) / 1000000)
+	v := rng.Float64()
 	return &v
 }
