@@ -83,15 +83,6 @@ func NewFileStorage(filepath string) (*FileStorage, error) {
 }
 
 func (p *FileStorageProducer) WriteMetric(name string, value float64) error {
-	var err error
-	p.file, err = os.OpenFile(p.filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		return err
-	}
-	defer p.file.Close()
-
-	p.encoder = json.NewEncoder(p.file)
-
 	metric := FileMetric{
 		Name:  name,
 		Value: value,
@@ -124,9 +115,17 @@ func (f *FileStorage) Close() error {
 	return f.Consumer.Close()
 }
 
-func (f *FileStorage) WriteMetrics(metrics *map[string]float64) error {
+func (p *FileStorageProducer) WriteMetrics(metrics *map[string]float64) error {
+	var err error
+	p.file, err = os.OpenFile(p.filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer p.file.Close()
+
+	p.encoder = json.NewEncoder(p.file)
 	for name, value := range *metrics {
-		err := f.Producer.WriteMetric(name, value)
+		err := p.WriteMetric(name, value)
 		if err != nil {
 			return err
 		}
@@ -134,10 +133,10 @@ func (f *FileStorage) WriteMetrics(metrics *map[string]float64) error {
 	return nil
 }
 
-func (f *FileStorage) ReadMetrics() (*map[string]float64, error) {
+func (c *FileStorageConsumer) ReadMetrics() (*map[string]float64, error) {
 	var metrics = make(map[string]float64)
 	for {
-		metric, err := f.Consumer.ReadMetric()
+		metric, err := c.ReadMetric()
 		if err != nil {
 			break
 		}

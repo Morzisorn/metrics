@@ -67,7 +67,7 @@ func (m *Metric) UpdateMetric() error {
 	if service.Config.StoreInterval == 0 {
 		file := storage.GetFileStorage()
 		metrics := s.GetMetrics()
-		err := file.WriteMetrics(&metrics)
+		err := file.Producer.WriteMetrics(&metrics)
 		if err != nil {
 			return err
 		}

@@ -49,7 +49,7 @@ func saveMetrics() error {
 			s := storage.GetStorage()
 			metrics := s.GetMetrics()
 
-			err := File.WriteMetrics(&metrics)
+			err := File.Producer.WriteMetrics(&metrics)
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func saveMetrics() error {
 func loadMetricsFromFile() error {
 	if Service.Config.Restore {
 		s := storage.GetStorage()
-		metrics, err := File.ReadMetrics()
+		metrics, err := File.Consumer.ReadMetrics()
 		if err != nil {
 			return err
 		}
