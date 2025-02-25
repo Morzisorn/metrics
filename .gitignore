@@ -26,3 +26,6 @@ vendor/
 
 # Environment variables file
 .env
+
+# Storage file
+cmd/server/storage.json

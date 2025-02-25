@@ -1,15 +1,15 @@
 package storage
 
 import (
-	"strconv"
 	"sync"
 )
 
 type Storage interface {
 	GetMetric(name string) (float64, bool)
 	GetMetrics() map[string]float64
-	UpdateCounter(name, value string) error
-	UpdateGauge(name, value string) error
+	UpdateCounter(name string, value float64) (float64, error)
+	UpdateGauge(name string, value float64) error
+	SetMetrics(metrics map[string]float64)
 	Reset()
 }
 
@@ -27,6 +27,7 @@ func GetStorage() Storage {
 		instance = &MemStorage{
 			Metrics: make(map[string]float64),
 		}
+		instance.(*MemStorage).Metrics["RandomValue"] = 5.6
 	})
 	return instance
 }
@@ -40,25 +41,21 @@ func (m *MemStorage) GetMetrics() map[string]float64 {
 	return m.Metrics
 }
 
-func (m *MemStorage) UpdateCounter(name, value string) error {
-	v, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return err
-	}
+func (m *MemStorage) UpdateCounter(name string, value float64) (float64, error) {
 	metric, _ := m.GetMetric(name)
-	metric += float64(v)
+	metric += float64(value)
 	m.Metrics[name] = metric
+	return metric, nil
+}
+
+func (m *MemStorage) UpdateGauge(name string, value float64) error {
+	m.Metrics[name] = value
+
 	return nil
 }
 
-func (m *MemStorage) UpdateGauge(name, value string) error {
-	v, err := strconv.ParseFloat(value, 64)
-	if err != nil {
-		return err
-	}
-	m.Metrics[name] = v
-
-	return nil
+func (m *MemStorage) SetMetrics(metrics map[string]float64) {
+	m.Metrics = metrics
 }
 
 func (m *MemStorage) Reset() {

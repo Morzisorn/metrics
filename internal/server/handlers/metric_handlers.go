@@ -3,10 +3,23 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"go.uber.org/zap"
 )
+
+const ContentTypeJSON = "application/json"
+
+func RegisterMetricsRoutes(mux *gin.Engine) {
+	mux.GET("/", GetMetrics)
+	mux.POST("/update/:type/:metric/:value", UpdateMetricParams)
+	mux.POST("/update/", UpdateMetricBody)
+	mux.GET("/value/:type/:metric", GetMetricParams)
+	mux.POST("/value/", GetMetricBody)
+}
 
 func GetMetrics(c *gin.Context) {
 
@@ -19,7 +32,7 @@ func GetMetrics(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }
 
-func UpdateMetrics(c *gin.Context) {
+func UpdateMetricParams(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		c.String(http.StatusMethodNotAllowed, "Invalid request method")
 		return
@@ -29,9 +42,9 @@ func UpdateMetrics(c *gin.Context) {
 		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return
 	}
-
-	name := c.Param("metric")
-	if name == "" {
+	var metric metrics.Metric
+	metric.ID = c.Param("metric")
+	if metric.ID == "" {
 		c.String(http.StatusNotFound, "Invalid metric name")
 		return
 	}
@@ -42,9 +55,29 @@ func UpdateMetrics(c *gin.Context) {
 		return
 	}
 
-	typ := c.Param("type")
+	metric.MType = c.Param("type")
 
-	err := metrics.UpdateMetric(typ, name, value)
+	switch metric.MType {
+	case "counter":
+		delta, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		metric.Delta = &delta
+	case "gauge":
+		val, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		metric.Value = &val
+	default:
+		c.String(http.StatusBadRequest, "Invalid metric type")
+		return
+	}
+
+	err := metric.UpdateMetric()
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return
@@ -52,16 +85,93 @@ func UpdateMetrics(c *gin.Context) {
 	c.String(http.StatusOK, "OK")
 }
 
-func GetMetric(c *gin.Context) {
-	name := c.Params.ByName("metric")
-	if name == "" {
+func UpdateMetricBody(c *gin.Context) {
+	if c.Request.Method != http.MethodPost {
+		c.String(http.StatusMethodNotAllowed, "Invalid request method")
+		return
+	}
+
+	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+		c.String(http.StatusMethodNotAllowed, "Invalid content type")
+		return
+	}
+
+	var metric metrics.Metric
+	if err := c.BindJSON(&metric); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if metric.ID == "" {
+		c.String(http.StatusNotFound, "Invalid metric ID")
+		return
+	}
+
+	if metric.Delta == nil && metric.Value == nil {
+		c.String(http.StatusNotFound, "Invalid metric value")
+		return
+	}
+
+	err := metric.UpdateMetric()
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, metric)
+}
+
+func GetMetricParams(c *gin.Context) {
+	var metric metrics.Metric
+	metric.ID = c.Params.ByName("metric")
+	if metric.ID == "" {
 		c.String(http.StatusNotFound, "Invalid metric name")
 		return
 	}
-	value, err := metrics.GetMetric(name)
+
+	metric.MType = c.Params.ByName("type")
+
+	err := metric.GetMetric()
 	if err != nil {
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
-	c.String(http.StatusOK, value)
+
+	switch metric.MType {
+	case "counter":
+		c.JSON(http.StatusOK, metric.Delta)
+	case "gauge":
+		c.JSON(http.StatusOK, metric.Value)
+	default:
+		c.String(http.StatusBadRequest, "Invalid metric type")
+	}
+}
+
+func GetMetricBody(c *gin.Context) {
+	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+		logger.Log.Info("Invalid content type", zap.String("Content-Type :", c.Request.Header.Get("Content-Type")))
+		c.String(http.StatusMethodNotAllowed, "Invalid content type")
+		return
+	}
+
+	var metric metrics.Metric
+	if err := c.BindJSON(&metric); err != nil {
+		logger.Log.Info("Invalid request body", zap.Error(err))
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if metric.ID == "" || metric.MType == "" {
+		logger.Log.Info("Invalid metric ID or Mtype", zap.String("ID", metric.ID), zap.String("MType", metric.MType))
+		c.String(http.StatusNotFound, "Invalid metric ID or Mtype")
+		return
+	}
+
+	err := metric.GetMetric()
+	if err != nil {
+		logger.Log.Info("Metric not found", zap.Error(err))
+		c.String(http.StatusNotFound, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, metric)
 }

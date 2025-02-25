@@ -9,21 +9,42 @@ import (
 
 func TestGetMetric(t *testing.T) {
 	s := storage.GetStorage()
+	tests := []struct {
+		metric Metric
+		expect float64
+	}{
+		{
+			metric: Metric{
+				ID:    "test_metric",
+				MType: "gauge",
+				Value: new(float64),
+			},
+			expect: 42.123,
+		},
+		{
+			metric: Metric{
+				ID:    "non_existent_metric",
+				MType: "gauge",
+				Value: new(float64),
+			},
+			expect: float64(0),
+		},
+	}
 
 	// Metric exists
-	expectedValue := "42.123000"
-	s.UpdateGauge("test_metric", expectedValue)
+	err := s.UpdateGauge(tests[0].metric.ID, tests[0].expect)
+	assert.NoError(t, err)
 
-	result, err := GetMetric("test_metric")
+	err = tests[0].metric.GetMetric()
 
 	assert.NoError(t, err, "Expected no error for existing metric")
-	assert.Equal(t, "42.123", result, "Expected trimmed metric value")
+	assert.Equal(t, tests[0].expect, *tests[0].metric.Value, "Expected trimmed metric value")
 
 	// Metric does not exist
-	result, err = GetMetric("non_existent_metric")
+	err = tests[1].metric.GetMetric()
 
 	assert.Error(t, err, "Expected error for non-existent metric")
-	assert.Equal(t, "", result, "Expected empty string for missing metric")
+	assert.Equal(t, tests[1].expect, *tests[1].metric.Value, "Expected 0 for missing metric")
 }
 
 func TestGetMetrics(t *testing.T) {
@@ -31,9 +52,12 @@ func TestGetMetrics(t *testing.T) {
 	s.Reset()
 
 	// Adding test metrics
-	s.UpdateGauge("metric1", "10.500000")
-	s.UpdateGauge("metric2", "20.0")
-	s.UpdateGauge("metric3", "30.123456")
+	err := s.UpdateGauge("metric1", 10.5)
+	assert.NoError(t, err)
+	err = s.UpdateGauge("metric2", 20.0)
+	assert.NoError(t, err)
+	err = s.UpdateGauge("metric3", 30.123456)
+	assert.NoError(t, err)
 
 	metrics := GetMetrics()
 
@@ -47,19 +71,55 @@ func TestGetMetrics(t *testing.T) {
 }
 
 func TestUpdateMetric(t *testing.T) {
+	tests := []struct {
+		metric Metric
+		err    string
+	}{
+		{
+			metric: Metric{
+				MType: "counter",
+				ID:    "counter_metric",
+				Delta: new(int64),
+			},
+			err: "",
+		},
+		{
+			metric: Metric{
+				MType: "gauge",
+				ID:    "gauge_metric",
+				Value: new(float64),
+			},
+			err: "",
+		},
+		{
+			metric: Metric{
+				MType: "invalid_type",
+				ID:    "metric_invalid",
+				Delta: new(int64),
+			},
+			err: "invalid metric type",
+		},
+	}
 	// Test updating a counter metric
-	err := UpdateMetric("counter", "counter_metric", "5")
+	*tests[0].metric.Delta = 5
+
+	err := tests[0].metric.UpdateMetric()
 	assert.NoError(t, err, "Expected no error for updating counter metric")
 	s := storage.GetStorage()
-	have, _ := s.GetMetric("counter_metric")
+	have, _ := s.GetMetric(tests[0].metric.ID)
 	assert.Equal(t, 5.0, have, "Expected updated counter metric value")
 
 	// Test updating a gauge metric
-	err = UpdateMetric("gauge", "gauge_metric", "15.678")
+	*tests[1].metric.Value = 15.678
+
+	err = tests[1].metric.UpdateMetric()
 	assert.NoError(t, err, "Expected no error for updating gauge metric")
+	assert.Equal(t, 15.678, *tests[1].metric.Value, "Expected updated metric")
 
 	// Test invalid metric type
-	err = UpdateMetric("invalid_type", "metric_invalid", "123")
+	*tests[2].metric.Delta = 123
+
+	err = tests[2].metric.UpdateMetric()
 	assert.Error(t, err, "Expected error for invalid metric type")
 	assert.Equal(t, "invalid metric type", err.Error(), "Expected specific error message")
 }
