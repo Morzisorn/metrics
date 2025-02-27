@@ -60,7 +60,7 @@ const (
 func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	m = new(Metrics)
+	m.Metrics = make(map[string]Metric)
 
 	val := reflect.ValueOf(memStats)
 	for _, gauge := range RuntimeGauges {
