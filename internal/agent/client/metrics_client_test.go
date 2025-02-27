@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	agent "github.com/morzisorn/metrics/internal/agent/services"
+	"github.com/morzisorn/metrics/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"resty.dev/v3"
@@ -38,9 +39,11 @@ func TestSendMetrics(t *testing.T) {
 	metrics := &agent.Metrics{
 		Metrics: map[string]agent.Metric{
 			"HeapAlloc": {
-				ID:    "HeapAlloc",
-				MType: "gauge",
-				Value: &randomValue,
+				Metric: models.Metric{
+					ID:    "HeapAlloc",
+					MType: "gauge",
+					Value: &randomValue,
+				},
 			},
 		},
 	}

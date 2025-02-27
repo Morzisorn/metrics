@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"runtime"
 	"time"
+
+	"github.com/morzisorn/metrics/internal/models"
 )
 
 var RuntimeGauges = []string{
@@ -46,22 +48,19 @@ type Metrics struct {
 	Metrics map[string]Metric
 }
 
+type Metric struct {
+	models.Metric
+}
+
 const (
 	CounterMetric     = "PollCount"   //int64
 	RandomValueMetric = "RandomValue" //float64
 )
 
-type Metric struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-}
-
 func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	m.Metrics = make(map[string]Metric)
+	m = new(Metrics)
 
 	val := reflect.ValueOf(memStats)
 	for _, gauge := range RuntimeGauges {
@@ -73,17 +72,21 @@ func (m *Metrics) PollMetrics() error {
 	}
 
 	m.Metrics[RandomValueMetric] = Metric{
-		ID:    RandomValueMetric,
-		MType: "gauge",
-		Value: GetRandomValue(),
+		Metric: models.Metric{
+			ID:    RandomValueMetric,
+			MType: "gauge",
+			Value: GetRandomValue(),
+		},
 	}
 
 	var counter int64 = 1
 
 	m.Metrics[CounterMetric] = Metric{
-		ID:    CounterMetric,
-		MType: "counter",
-		Delta: &counter,
+		Metric: models.Metric{
+			ID:    CounterMetric,
+			MType: "counter",
+			Delta: &counter,
+		},
 	}
 
 	return nil
@@ -91,6 +94,7 @@ func (m *Metrics) PollMetrics() error {
 
 func GetMetric(memStats reflect.Value, gauge string) (Metric, error) {
 	field := memStats.FieldByName(gauge)
+
 	if field.IsValid() {
 		var value float64
 		switch field.Kind() {
@@ -104,9 +108,11 @@ func GetMetric(memStats reflect.Value, gauge string) (Metric, error) {
 			return Metric{}, fmt.Errorf("unsupported type %s", field.Kind())
 		}
 		return Metric{
-			ID:    gauge,
-			MType: "gauge",
-			Value: &value,
+			Metric: models.Metric{
+				ID:    gauge,
+				MType: "gauge",
+				Value: &value,
+			},
 		}, nil
 	} else {
 		return Metric{}, fmt.Errorf("unsupported type %s", field.Kind())

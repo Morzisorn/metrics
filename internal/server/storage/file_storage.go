@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"sync"
 
@@ -17,7 +18,7 @@ type FileStorage struct {
 
 type FileStorageProducer struct {
 	filename string
-	file     *os.File
+	file     io.WriteCloser
 	encoder  *json.Encoder
 }
 
@@ -50,7 +51,7 @@ func NewFileStorageProducer(filename string) (*FileStorageProducer, error) {
 }
 
 type FileStorageConsumer struct {
-	file    *os.File
+	file    io.ReadCloser
 	decoder *json.Decoder
 }
 
