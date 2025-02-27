@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"github.com/morzisorn/metrics/internal/server/storage"
 	"go.uber.org/zap"
 )
 
@@ -19,6 +20,8 @@ func RegisterMetricsRoutes(mux *gin.Engine) {
 	mux.POST("/update/", UpdateMetricBody)
 	mux.GET("/value/:type/:metric", GetMetricParams)
 	mux.POST("/value/", GetMetricBody)
+
+	mux.GET("/ping", PingDB)
 }
 
 func GetMetrics(c *gin.Context) {
@@ -174,4 +177,13 @@ func GetMetricBody(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, metric)
+}
+
+func PingDB(c *gin.Context) {
+	if err := storage.PingDB(); err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
