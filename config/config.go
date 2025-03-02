@@ -64,7 +64,7 @@ func New(app string) (*Service, error) {
 	}, nil
 }
 
-func getProjectRoot() (string, error) {
+func GetProjectRoot() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -84,7 +84,7 @@ func getProjectRoot() (string, error) {
 }
 
 func getEncFilePath() string {
-	basePath, err := getProjectRoot()
+	basePath, err := GetProjectRoot()
 	if err != nil {
 		logger.Log.Error("Error getting project root ", zap.Error(err))
 		return ".env"

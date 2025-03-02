@@ -6,6 +6,7 @@ import (
 	"github.com/morzisorn/metrics/internal/models"
 	"github.com/morzisorn/metrics/internal/server/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetMetric(t *testing.T) {
@@ -64,7 +65,8 @@ func TestGetMetrics(t *testing.T) {
 	err = s.UpdateGauge("metric3", 30.123456)
 	assert.NoError(t, err)
 
-	metrics := GetMetrics()
+	metrics, err := GetMetricsStr()
+	require.NoError(t, err)
 
 	expected := map[string]string{
 		"metric1": "10.5",

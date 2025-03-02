@@ -27,7 +27,11 @@ func RegisterMetricsRoutes(mux *gin.Engine) {
 func GetMetrics(c *gin.Context) {
 
 	html := "<html><head><title>Metrics</title></head><body><h1>Metrics</h1><ul>"
-	for k, v := range metrics.GetMetrics() {
+	metrics, err := metrics.GetMetricsStr()
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+	}
+	for k, v := range *metrics {
 		html += fmt.Sprintf("<li>%s: %v</li>", k, v)
 	}
 	html += "</ul></body></html>"

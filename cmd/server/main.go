@@ -1,14 +1,13 @@
 package main
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	"github.com/morzisorn/metrics/config"
 	server "github.com/morzisorn/metrics/internal/server/handlers"
 	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/morzisorn/metrics/internal/server/services/metrics"
 	"github.com/morzisorn/metrics/internal/server/storage"
 )
 
@@ -39,36 +38,6 @@ func runServer(mux *gin.Engine) error {
 	return mux.Run(Service.Config.Addr)
 }
 
-func saveMetrics() error {
-	lastSave := time.Now()
-
-	for {
-		if time.Since(lastSave).Seconds() >= float64(Service.Config.StoreInterval) {
-			lastSave = time.Now()
-
-			s := storage.GetStorage()
-			metrics := s.GetMetrics()
-
-			err := File.Producer.WriteMetrics(&metrics)
-			if err != nil {
-				return err
-			}
-		}
-	}
-}
-
-func loadMetricsFromFile() error {
-	if Service.Config.Restore {
-		s := storage.GetStorage()
-		metrics, err := File.Consumer.ReadMetrics()
-		if err != nil {
-			return err
-		}
-		s.SetMetrics(*metrics)
-	}
-	return nil
-}
-
 func main() {
 	var err error
 	Service = config.GetService("server")
@@ -80,7 +49,7 @@ func main() {
 	defer File.Close()
 
 	if Service.Config.Restore {
-		if err := loadMetricsFromFile(); err != nil {
+		if err := metrics.LoadMetricsFromFile(); err != nil {
 			logger.Log.Panic("Error loading metrics", zap.Error(err))
 		}
 	}
@@ -93,7 +62,7 @@ func main() {
 	}(mux)
 
 	if Service.Config.StoreInterval != 0 {
-		if err := saveMetrics(); err != nil {
+		if err := metrics.SaveMetrics(); err != nil {
 			logger.Log.Panic("Error saving metrics", zap.Error(err))
 		}
 	}

@@ -22,11 +22,6 @@ type FileStorageProducer struct {
 	encoder  *json.Encoder
 }
 
-type FileMetric struct {
-	Name  string  `json:"name"`
-	Value float64 `json:"value"`
-}
-
 var (
 	fileInstance *FileStorage
 	onceFile     sync.Once
@@ -84,15 +79,15 @@ func NewFileStorage(filepath string) (*FileStorage, error) {
 }
 
 func (p *FileStorageProducer) WriteMetric(name string, value float64) error {
-	metric := FileMetric{
+	metric := StorageMetric{
 		Name:  name,
 		Value: value,
 	}
 	return p.encoder.Encode(metric)
 }
 
-func (c *FileStorageConsumer) ReadMetric() (*FileMetric, error) {
-	var metric FileMetric
+func (c *FileStorageConsumer) ReadMetric() (*StorageMetric, error) {
+	var metric StorageMetric
 	err := c.decoder.Decode(&metric)
 	if err != nil {
 		return nil, err
