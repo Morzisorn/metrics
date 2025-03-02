@@ -23,7 +23,9 @@ func WriteMetric(name string, value float64) (float64, error) {
 
 	var val float64
 	err := db.QueryRow(ctx,
-		"INSERT INTO metrics(name, value) VALUES($1, $2) RETURNING value", name, value).Scan(&val)
+		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
+		name, value).
+		Scan(&val)
 
 	if err != nil {
 		return 0, err
@@ -99,6 +101,7 @@ func WriteMetrics(metrics *map[string]float64) error {
 		placeholder += 2
 		i += 1
 	}
+	query += "ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
 
 	_, err := db.Exec(ctx, query, args...)
 	if err != nil {
