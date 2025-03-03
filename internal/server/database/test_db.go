@@ -46,7 +46,7 @@ func ResetTestDB() error {
 
 	err = createTables(testInstance)
 	if err != nil {
-		return fmt.Errorf("Unable to create test database tables: %w", err)
+		return fmt.Errorf("unable to create test database tables: %w", err)
 	}
 
 	return nil
