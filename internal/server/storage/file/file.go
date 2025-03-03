@@ -1,4 +1,4 @@
-package storage
+package file
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/morzisorn/metrics/internal/server/storage/models"
 	"go.uber.org/zap"
 )
 
@@ -23,20 +24,30 @@ type FileStorageProducer struct {
 }
 
 var (
-	fileInstance *FileStorage
+	instanceStorage models.Storage
+	onceStorage     sync.Once
+
+	instanceFile *FileStorage
 	onceFile     sync.Once
 )
+
+func GetStorage() models.Storage {
+	onceStorage.Do(func() {
+		instanceStorage = GetFileStorage()
+	})
+	return instanceStorage
+}
 
 func GetFileStorage() *FileStorage {
 	onceFile.Do(func() {
 		var err error
 		service := config.GetService("server")
-		fileInstance, err = NewFileStorage(service.Config.FileStoragePath)
+		instanceFile, err = NewFileStorage(service.Config.FileStoragePath)
 		if err != nil {
 			logger.Log.Panic("Error file loading storage", zap.Error(err))
 		}
 	})
-	return fileInstance
+	return instanceFile
 }
 
 func NewFileStorageProducer(filename string) (*FileStorageProducer, error) {
@@ -79,15 +90,15 @@ func NewFileStorage(filepath string) (*FileStorage, error) {
 }
 
 func (p *FileStorageProducer) WriteMetric(name string, value float64) error {
-	metric := StorageMetric{
+	metric := models.StorageMetric{
 		Name:  name,
 		Value: value,
 	}
 	return p.encoder.Encode(metric)
 }
 
-func (c *FileStorageConsumer) ReadMetric() (*StorageMetric, error) {
-	var metric StorageMetric
+func (c *FileStorageConsumer) ReadMetric() (*models.StorageMetric, error) {
+	var metric models.StorageMetric
 	err := c.decoder.Decode(&metric)
 	if err != nil {
 		return nil, err
@@ -139,4 +150,33 @@ func (c *FileStorageConsumer) ReadMetrics() (*map[string]float64, error) {
 		metrics[metric.Name] = metric.Value
 	}
 	return &metrics, nil
+}
+
+func (f *FileStorage) GetMetric(name string) (float64, bool) {
+	for {
+		metric, err := f.Consumer.ReadMetric()
+		if err != nil {
+			break
+		}
+		if metric.Name == name {
+			return metric.Value, true
+		}
+	}
+	return 0, false
+}
+
+func (f *FileStorage) GetMetrics() (*map[string]float64, error) {
+	return f.Consumer.ReadMetrics()
+}
+
+func (f *FileStorage) UpdateCounter(name string, value float64) (float64, error) {
+	return value, f.Producer.WriteMetric(name, value)
+}
+
+func (f *FileStorage) UpdateGauge(name string, value float64) error {
+	return f.Producer.WriteMetric(name, value)
+}
+
+func (f *FileStorage) SetMetrics(metrics *map[string]float64) error {
+	return f.Producer.WriteMetrics(metrics)
 }

@@ -9,39 +9,47 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/morzisorn/metrics/internal/server/storage/models"
 	"go.uber.org/zap"
 )
 
 var (
-	instance *pgx.Conn
-	once     sync.Once
+	instanceStorage models.Storage
+	onceStorage     sync.Once
+
+	instanceDB *pgx.Conn
+	onceDB     sync.Once
 )
 
+type DbStorage struct {
+	DB *pgx.Conn
+}
+
+func GetStorage() models.Storage {
+	onceStorage.Do(func() {
+		instanceStorage = &DbStorage{
+			DB: GetDB(),
+		}
+	})
+	return instanceStorage
+}
+
 func GetDB() *pgx.Conn {
-	once.Do(func() {
+	onceDB.Do(func() {
 		var err error
 		s := config.GetService("server")
-		instance, err = pgx.Connect(context.Background(), s.Config.DBConnStr)
+		instanceDB, err = pgx.Connect(context.Background(), s.Config.DBConnStr)
 		if err != nil {
 			logger.Log.Panic("Unable to connect to database: ", zap.Error(err))
 		}
 
-		err = createTables(instance)
+		err = createTables(instanceDB)
 		if err != nil {
 			logger.Log.Panic("Unable to create database tables: ", zap.Error(err))
 		}
-
 	})
-	return instance
-}
 
-func CloseDB() {
-	if instance != nil {
-		err := instance.Close(context.Background())
-		if err != nil {
-			logger.Log.Panic("DB close error: ", zap.Error(err))
-		}
-	}
+	return instanceDB
 }
 
 func createTables(db *pgx.Conn) error {
@@ -49,7 +57,7 @@ func createTables(db *pgx.Conn) error {
 	if err != nil {
 		return err
 	}
-	filepath := filepath.Join(rootDir, "internal", "server", "database", "db_structure.sql")
+	filepath := filepath.Join(rootDir, "internal", "server", "storage", "database", "db_structure.sql")
 
 	script, err := os.ReadFile(filepath)
 	if err != nil {

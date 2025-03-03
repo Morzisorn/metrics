@@ -8,12 +8,11 @@ import (
 	server "github.com/morzisorn/metrics/internal/server/handlers"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
-	"github.com/morzisorn/metrics/internal/server/storage"
+	"github.com/morzisorn/metrics/internal/server/storage/file"
 )
 
 var (
-	Service *config.Service
-	File    *storage.FileStorage
+	service *config.Service
 )
 
 func createServer() *gin.Engine {
@@ -33,35 +32,40 @@ func runServer(mux *gin.Engine) error {
 	if err := logger.Init(); err != nil {
 		return err
 	}
-	logger.Log.Info("Starting server on ", zap.String("address", Service.Config.Addr))
+	logger.Log.Info("Starting server on ", zap.String("address", service.Config.Addr))
 
-	return mux.Run(Service.Config.Addr)
+	return mux.Run(service.Config.Addr)
 }
 
 func main() {
-	var err error
-	Service = config.GetService("server")
+	service = config.GetService("server")
 
-	File, err = storage.NewFileStorage(Service.Config.FileStoragePath)
-	if err != nil {
-		logger.Log.Panic("Error file loading storage", zap.Error(err))
-	}
-	defer File.Close()
+	if service.Config.DBConnStr == "" {
+		file, err := file.NewFileStorage(service.Config.FileStoragePath)
+		if err != nil {
+			logger.Log.Panic("Error file loading storage", zap.Error(err))
+		}
+		defer file.Close()
 
-	if Service.Config.Restore {
-		if err := metrics.LoadMetricsFromFile(); err != nil {
-			logger.Log.Panic("Error loading metrics", zap.Error(err))
+		if service.Config.Restore {
+			if err := metrics.LoadMetricsFromFile(); err != nil {
+				logger.Log.Panic("Error loading metrics", zap.Error(err))
+			}
 		}
 	}
 
 	mux := createServer()
-	go func(mux *gin.Engine) {
+	if !(service.Config.StoreInterval != 0 && service.Config.DBConnStr == "") {
 		if err := runServer(mux); err != nil {
 			logger.Log.Panic("Error running server", zap.Error(err))
 		}
-	}(mux)
+	} else {
+		go func(mux *gin.Engine) {
+			if err := runServer(mux); err != nil {
+				logger.Log.Panic("Error running server", zap.Error(err))
+			}
+		}(mux)
 
-	if Service.Config.StoreInterval != 0 {
 		if err := metrics.SaveMetrics(); err != nil {
 			logger.Log.Panic("Error saving metrics", zap.Error(err))
 		}

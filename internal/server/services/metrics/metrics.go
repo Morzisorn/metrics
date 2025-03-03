@@ -8,6 +8,7 @@ import (
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/models"
 	"github.com/morzisorn/metrics/internal/server/storage"
+	"github.com/morzisorn/metrics/internal/server/storage/file"
 )
 
 type Metric struct {
@@ -15,22 +16,10 @@ type Metric struct {
 }
 
 func (m *Metric) GetMetric() error {
-	service := config.GetService("server")
-	var val float64
-
-	if service.Config.DBConnStr != "" {
-		var err error
-		val, err = storage.GetMetric(m.ID)
-		if err != nil {
-			return err
-		}
-	} else {
-		s := storage.GetStorage()
-		var exist bool
-		val, exist = s.GetMetric(m.ID)
-		if !exist {
-			return fmt.Errorf("metric not found")
-		}
+	s := storage.GetStorage()
+	val, exist := s.GetMetric(m.ID)
+	if !exist {
+		return fmt.Errorf("metric not found")
 	}
 
 	switch m.MType {
@@ -47,18 +36,10 @@ func (m *Metric) GetMetric() error {
 }
 
 func GetMetricsStr() (*map[string]string, error) {
-	service := config.GetService("server")
-	var metrics *map[string]float64
-
-	if service.Config.DBConnStr != "" {
-		var err error
-		metrics, err = storage.GetMetrics()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		s := storage.GetStorage()
-		metrics = s.GetMetrics()
+	s := storage.GetStorage()
+	metrics, err := s.GetMetrics()
+	if err != nil {
+		return nil, err
 	}
 
 	var metricsTrimmed = make(map[string]string)
@@ -69,50 +50,35 @@ func GetMetricsStr() (*map[string]string, error) {
 }
 
 func (m *Metric) UpdateMetric() error {
+	s := storage.GetStorage()
+
+	switch m.MType {
+	case "counter":
+		updated, err := s.UpdateCounter(m.ID, float64(*m.Delta))
+		if err != nil {
+			return err
+		}
+		*m.Delta = int64(updated)
+	case "gauge":
+		err := s.UpdateGauge(m.ID, *m.Value)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("invalid metric type")
+	}
+
 	service := config.GetService("server")
 
-	if service.Config.DBConnStr != "" {
-		switch m.MType {
-		case "counter":
-			updated, err := storage.WriteCounterMetric(m.ID, float64(*m.Delta))
-			if err != nil {
-				return err
-			}
-			*m.Delta = int64(updated)
-		case "gauge":
-			_, err := storage.WriteGaugeMetric(m.ID, *m.Value)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("invalid metric type")
+	if service.Config.StoreInterval == 0 && service.Config.DBConnStr != "" {
+		file := file.GetFileStorage()
+		metrics, err := s.GetMetrics()
+		if err != nil {
+			return err
 		}
-	} else {
-		s := storage.GetStorage()
-
-		switch m.MType {
-		case "counter":
-			updated, err := s.UpdateCounter(m.ID, float64(*m.Delta))
-			if err != nil {
-				return err
-			}
-			*m.Delta = int64(updated)
-		case "gauge":
-			err := s.UpdateGauge(m.ID, *m.Value)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("invalid metric type")
-		}
-
-		if service.Config.StoreInterval == 0 {
-			file := storage.GetFileStorage()
-			metrics := s.GetMetrics()
-			err := file.Producer.WriteMetrics(metrics)
-			if err != nil {
-				return err
-			}
+		err = file.Producer.WriteMetrics(metrics)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -128,7 +94,7 @@ func trimTrailingZeros(s string) string {
 
 func LoadMetricsFromFile() error {
 	service := config.GetService("server")
-	file := storage.GetFileStorage()
+	file := file.GetFileStorage()
 
 	if service.Config.Restore {
 		s := storage.GetStorage()
@@ -136,7 +102,7 @@ func LoadMetricsFromFile() error {
 		if err != nil {
 			return err
 		}
-		s.SetMetrics(*metrics)
+		s.SetMetrics(metrics)
 	}
 	return nil
 }
@@ -144,16 +110,19 @@ func LoadMetricsFromFile() error {
 func SaveMetrics() error {
 	lastSave := time.Now()
 	service := config.GetService("server")
-	file := storage.GetFileStorage()
+	file := file.GetFileStorage()
 
 	for {
 		if time.Since(lastSave).Seconds() >= float64(service.Config.StoreInterval) {
 			lastSave = time.Now()
 
 			s := storage.GetStorage()
-			metrics := s.GetMetrics()
+			metrics, err := s.GetMetrics()
+			if err != nil {
+				return err
+			}
 
-			err := file.Producer.WriteMetrics(metrics)
+			err = file.Producer.WriteMetrics(metrics)
 			if err != nil {
 				return err
 			}

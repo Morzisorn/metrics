@@ -1,4 +1,4 @@
-package storage
+package memory
 
 import (
 	"testing"
@@ -29,7 +29,7 @@ func TestUpdateGauge(t *testing.T) {
 }
 
 func TestMemStorage_Reset(t *testing.T) {
-	s := GetStorage()
+	s := GetMemStorage()
 
 	_, err := s.UpdateCounter("test_metric", 1)
 	assert.NoError(t, err)

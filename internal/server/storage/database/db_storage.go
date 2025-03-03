@@ -1,49 +1,49 @@
-package storage
+package database
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/morzisorn/metrics/internal/server/database"
+	"github.com/jackc/pgx/v5"
+	"github.com/morzisorn/metrics/internal/server/logger"
+	"go.uber.org/zap"
 )
 
-func PingDB() error {
-	db := database.GetDB()
+func PingDB(db *pgx.Conn) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	return db.Ping(ctx)
 }
 
-func WriteGaugeMetric(name string, value float64) (float64, error) {
-	db := database.GetDB()
+func (db *DbStorage) UpdateGauge(name string, value float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var val float64
-	err := db.QueryRow(ctx,
+	err := db.DB.QueryRow(ctx,
 		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
 		name, value).
 		Scan(&val)
 
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return val, nil
+	return nil
 }
 
-func WriteCounterMetric(name string, value float64) (float64, error) {
-	db := database.GetDB()
+func (db *DbStorage) UpdateCounter(name string, value float64) (float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var val float64
-	val, err := GetMetric(name)
+	val, _ = db.GetMetric(name)
+
 	value += val
 
-	err = db.QueryRow(ctx,
+	err := db.DB.QueryRow(ctx,
 		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
 		name, value).
 		Scan(&val)
@@ -55,28 +55,26 @@ func WriteCounterMetric(name string, value float64) (float64, error) {
 	return val, nil
 }
 
-func GetMetric(name string) (float64, error) {
-	db := database.GetDB()
+func (db *DbStorage) GetMetric(name string) (float64, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var val float64
 
-	err := db.QueryRow(ctx,
+	err := db.DB.QueryRow(ctx,
 		"SELECT value FROM metrics WHERE name = $1", name).Scan(&val)
 	if err != nil {
-		return 0, err
+		return 0, false
 	}
 
-	return val, nil
+	return val, true
 }
 
-func GetMetrics() (*map[string]float64, error) {
-	db := database.GetDB()
+func (db *DbStorage) GetMetrics() (*map[string]float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := db.Query(ctx,
+	rows, err := db.DB.Query(ctx,
 		"SELECT name, value FROM metrics")
 	if err != nil {
 		return nil, err
@@ -84,15 +82,16 @@ func GetMetrics() (*map[string]float64, error) {
 	defer rows.Close()
 
 	metrics := make(map[string]float64)
+	var name string
+	var value float64
 
 	for rows.Next() {
-		var m StorageMetric
-		err := rows.Scan(&m.Name, &m.Value)
+		err := rows.Scan(&name, &value)
 		if err != nil {
 			return nil, err
 		}
 
-		metrics[m.Name] = m.Value
+		metrics[name] = value
 	}
 
 	if rows.Err() != nil {
@@ -102,8 +101,7 @@ func GetMetrics() (*map[string]float64, error) {
 	return &metrics, nil
 }
 
-func WriteMetrics(metrics *map[string]float64) error {
-	db := database.GetDB()
+func (db *DbStorage) SetMetrics(metrics *map[string]float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -124,10 +122,17 @@ func WriteMetrics(metrics *map[string]float64) error {
 	}
 	query += "ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
 
-	_, err := db.Exec(ctx, query, args...)
+	_, err := db.DB.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (db *DbStorage) Close() {
+	err := db.DB.Close(context.Background())
+	if err != nil {
+		logger.Log.Panic("DB close error: ", zap.Error(err))
+	}
 }

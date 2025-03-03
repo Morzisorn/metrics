@@ -6,9 +6,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
-	"github.com/morzisorn/metrics/internal/server/storage"
+	"github.com/morzisorn/metrics/internal/server/storage/database"
 	"go.uber.org/zap"
 )
 
@@ -184,7 +185,15 @@ func GetMetricBody(c *gin.Context) {
 }
 
 func PingDB(c *gin.Context) {
-	if err := storage.PingDB(); err != nil {
+	service := config.GetService("server")
+
+	if service.Config.DBConnStr == "" {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	db := database.GetDB()
+	if err := database.PingDB(db); err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
