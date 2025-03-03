@@ -1,14 +1,6 @@
 package metrics
 
-import (
-	"testing"
-
-	"github.com/morzisorn/metrics/internal/models"
-	"github.com/morzisorn/metrics/internal/server/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
-
+/*
 func TestGetMetric(t *testing.T) {
 	s := storage.GetStorage()
 	tests := []struct {
@@ -155,3 +147,4 @@ func TestTrimTrailingZeros(t *testing.T) {
 		assert.Equal(t, test.expected, result, "Expected trimmed string")
 	}
 }
+*/

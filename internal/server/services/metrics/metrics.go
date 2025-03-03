@@ -74,13 +74,13 @@ func (m *Metric) UpdateMetric() error {
 	if service.Config.DBConnStr != "" {
 		switch m.MType {
 		case "counter":
-			updated, err := storage.WriteMetric(m.ID, float64(*m.Delta))
+			updated, err := storage.WriteCounterMetric(m.ID, float64(*m.Delta))
 			if err != nil {
 				return err
 			}
 			*m.Delta = int64(updated)
 		case "gauge":
-			_, err := storage.WriteMetric(m.ID, *m.Value)
+			_, err := storage.WriteGaugeMetric(m.ID, *m.Value)
 			if err != nil {
 				return err
 			}

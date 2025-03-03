@@ -16,13 +16,34 @@ func PingDB() error {
 	return db.Ping(ctx)
 }
 
-func WriteMetric(name string, value float64) (float64, error) {
+func WriteGaugeMetric(name string, value float64) (float64, error) {
 	db := database.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	var val float64
 	err := db.QueryRow(ctx,
+		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
+		name, value).
+		Scan(&val)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return val, nil
+}
+
+func WriteCounterMetric(name string, value float64) (float64, error) {
+	db := database.GetDB()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var val float64
+	val, err := GetMetric(name)
+	value += val
+
+	err = db.QueryRow(ctx,
 		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
 		name, value).
 		Scan(&val)
