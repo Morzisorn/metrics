@@ -8,6 +8,7 @@ import (
 
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/morzisorn/metrics/internal/server/storage/memory"
 	"github.com/morzisorn/metrics/internal/server/storage/models"
 	"go.uber.org/zap"
 )
@@ -47,6 +48,7 @@ func GetFileStorage() *FileStorage {
 			logger.Log.Panic("Error file loading storage", zap.Error(err))
 		}
 	})
+
 	return instanceFile
 }
 
@@ -62,7 +64,7 @@ type FileStorageConsumer struct {
 }
 
 func NewFileStorageConsumer(filename string) (*FileStorageConsumer, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0644)
+	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +79,6 @@ func NewFileStorage(filepath string) (*FileStorage, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	consumer, err := NewFileStorageConsumer(filepath)
 	if err != nil {
 		return nil, err
@@ -170,11 +171,48 @@ func (f *FileStorage) GetMetrics() (*map[string]float64, error) {
 }
 
 func (f *FileStorage) UpdateCounter(name string, value float64) (float64, error) {
-	return value, f.Producer.WriteMetric(name, value)
+	mem := memory.GetMemStorage()
+
+	var err error
+	value, err = mem.UpdateCounter(name, value)
+	if err != nil {
+		return 0, err
+	}
+
+	service := config.GetService("server")
+	if service.Config.StoreInterval == 0 {
+		metrics, err := mem.GetMetrics()
+		if err != nil {
+			return 0, err
+		}
+		err = f.Producer.WriteMetrics(metrics)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return value, nil
 }
 
 func (f *FileStorage) UpdateGauge(name string, value float64) error {
-	return f.Producer.WriteMetric(name, value)
+	mem := memory.GetMemStorage()
+
+	err := mem.UpdateGauge(name, value)
+	if err != nil {
+		return err
+	}
+
+	service := config.GetService("server")
+	if service.Config.StoreInterval == 0 {
+		metrics, err := mem.GetMetrics()
+		if err != nil {
+			return err
+		}
+		err = f.Producer.WriteMetrics(metrics)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (f *FileStorage) SetMetrics(metrics *map[string]float64) error {

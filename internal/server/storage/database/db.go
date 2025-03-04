@@ -21,13 +21,13 @@ var (
 	onceDB     sync.Once
 )
 
-type DbStorage struct {
+type DBStorage struct {
 	DB *pgx.Conn
 }
 
 func GetStorage() models.Storage {
 	onceStorage.Do(func() {
-		instanceStorage = &DbStorage{
+		instanceStorage = &DBStorage{
 			DB: GetDB(),
 		}
 	})

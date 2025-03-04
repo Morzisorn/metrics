@@ -17,7 +17,7 @@ func PingDB(db *pgx.Conn) error {
 	return db.Ping(ctx)
 }
 
-func (db *DbStorage) UpdateGauge(name string, value float64) error {
+func (db *DBStorage) UpdateGauge(name string, value float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -34,7 +34,7 @@ func (db *DbStorage) UpdateGauge(name string, value float64) error {
 	return nil
 }
 
-func (db *DbStorage) UpdateCounter(name string, value float64) (float64, error) {
+func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -55,7 +55,7 @@ func (db *DbStorage) UpdateCounter(name string, value float64) (float64, error) 
 	return val, nil
 }
 
-func (db *DbStorage) GetMetric(name string) (float64, bool) {
+func (db *DBStorage) GetMetric(name string) (float64, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -70,7 +70,7 @@ func (db *DbStorage) GetMetric(name string) (float64, bool) {
 	return val, true
 }
 
-func (db *DbStorage) GetMetrics() (*map[string]float64, error) {
+func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -101,7 +101,7 @@ func (db *DbStorage) GetMetrics() (*map[string]float64, error) {
 	return &metrics, nil
 }
 
-func (db *DbStorage) SetMetrics(metrics *map[string]float64) error {
+func (db *DBStorage) SetMetrics(metrics *map[string]float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -130,7 +130,7 @@ func (db *DbStorage) SetMetrics(metrics *map[string]float64) error {
 	return nil
 }
 
-func (db *DbStorage) Close() {
+func (db *DBStorage) Close() {
 	err := db.DB.Close(context.Background())
 	if err != nil {
 		logger.Log.Panic("DB close error: ", zap.Error(err))

@@ -68,20 +68,6 @@ func (m *Metric) UpdateMetric() error {
 		return fmt.Errorf("invalid metric type")
 	}
 
-	service := config.GetService("server")
-
-	if service.Config.StoreInterval == 0 && service.Config.DBConnStr != "" {
-		file := file.GetFileStorage()
-		metrics, err := s.GetMetrics()
-		if err != nil {
-			return err
-		}
-		err = file.Producer.WriteMetrics(metrics)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -97,12 +83,11 @@ func LoadMetricsFromFile() error {
 	file := file.GetFileStorage()
 
 	if service.Config.Restore {
-		s := storage.GetStorage()
 		metrics, err := file.Consumer.ReadMetrics()
 		if err != nil {
 			return err
 		}
-		s.SetMetrics(metrics)
+		file.SetMetrics(metrics)
 	}
 	return nil
 }
@@ -116,8 +101,7 @@ func SaveMetrics() error {
 		if time.Since(lastSave).Seconds() >= float64(service.Config.StoreInterval) {
 			lastSave = time.Now()
 
-			s := storage.GetStorage()
-			metrics, err := s.GetMetrics()
+			metrics, err := file.GetMetrics()
 			if err != nil {
 				return err
 			}

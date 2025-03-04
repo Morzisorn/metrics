@@ -8,7 +8,6 @@ import (
 	server "github.com/morzisorn/metrics/internal/server/handlers"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
-	"github.com/morzisorn/metrics/internal/server/storage/file"
 )
 
 var (
@@ -41,12 +40,6 @@ func main() {
 	service = config.GetService("server")
 
 	if service.Config.DBConnStr == "" {
-		file, err := file.NewFileStorage(service.Config.FileStoragePath)
-		if err != nil {
-			logger.Log.Panic("Error file loading storage", zap.Error(err))
-		}
-		defer file.Close()
-
 		if service.Config.Restore {
 			if err := metrics.LoadMetricsFromFile(); err != nil {
 				logger.Log.Panic("Error loading metrics", zap.Error(err))

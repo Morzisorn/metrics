@@ -26,7 +26,6 @@ func RegisterMetricsRoutes(mux *gin.Engine) {
 }
 
 func GetMetrics(c *gin.Context) {
-
 	html := "<html><head><title>Metrics</title></head><body><h1>Metrics</h1><ul>"
 	metrics, err := metrics.GetMetricsStr()
 	if err != nil {
