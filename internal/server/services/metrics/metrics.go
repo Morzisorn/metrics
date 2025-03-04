@@ -3,16 +3,17 @@ package metrics
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/morzisorn/metrics/config"
+	"github.com/morzisorn/metrics/internal/models"
 	"github.com/morzisorn/metrics/internal/server/storage"
+	"github.com/morzisorn/metrics/internal/server/storage/file"
+	"github.com/morzisorn/metrics/internal/server/storage/memory"
 )
 
 type Metric struct {
-	ID    string   `json:"id"`              // имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+	models.Metric
 }
 
 func (m *Metric) GetMetric() error {
@@ -21,6 +22,7 @@ func (m *Metric) GetMetric() error {
 	if !exist {
 		return fmt.Errorf("metric not found")
 	}
+
 	switch m.MType {
 	case "counter":
 		v := int64(val)
@@ -34,14 +36,18 @@ func (m *Metric) GetMetric() error {
 	return nil
 }
 
-func GetMetrics() map[string]string {
+func GetMetricsStr() (*map[string]string, error) {
 	s := storage.GetStorage()
-	metrics := s.GetMetrics()
+	metrics, err := s.GetMetrics()
+	if err != nil {
+		return nil, err
+	}
+
 	var metricsTrimmed = make(map[string]string)
-	for key, value := range metrics {
+	for key, value := range *metrics {
 		metricsTrimmed[key] = trimTrailingZeros(fmt.Sprintf("%f", value))
 	}
-	return metricsTrimmed
+	return &metricsTrimmed, nil
 }
 
 func (m *Metric) UpdateMetric() error {
@@ -63,16 +69,6 @@ func (m *Metric) UpdateMetric() error {
 		return fmt.Errorf("invalid metric type")
 	}
 
-	service := config.GetService("server")
-	if service.Config.StoreInterval == 0 {
-		file := storage.GetFileStorage()
-		metrics := s.GetMetrics()
-		err := file.Producer.WriteMetrics(&metrics)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -81,4 +77,41 @@ func trimTrailingZeros(s string) string {
 	s = strings.TrimSuffix(s, ".")
 
 	return s
+}
+
+func LoadMetricsFromFile() error {
+	service := config.GetService("server")
+	file := file.GetFileStorage()
+
+	if service.Config.Restore {
+		metrics, err := file.Consumer.ReadMetrics()
+		if err != nil {
+			return err
+		}
+		file.SetMetrics(metrics)
+	}
+	return nil
+}
+
+func SaveMetrics() error {
+	lastSave := time.Now()
+	service := config.GetService("server")
+	file := file.GetFileStorage()
+	mem := memory.GetMemStorage()
+
+	for {
+		if time.Since(lastSave).Seconds() >= float64(service.Config.StoreInterval) {
+			lastSave = time.Now()
+
+			metrics, err := mem.GetMetrics()
+			if err != nil {
+				return err
+			}
+
+			err = file.Producer.WriteMetrics(metrics)
+			if err != nil {
+				return err
+			}
+		}
+	}
 }

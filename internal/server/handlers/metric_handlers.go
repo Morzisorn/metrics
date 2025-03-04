@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"github.com/morzisorn/metrics/internal/server/storage/database"
 	"go.uber.org/zap"
 )
 
@@ -19,12 +21,17 @@ func RegisterMetricsRoutes(mux *gin.Engine) {
 	mux.POST("/update/", UpdateMetricBody)
 	mux.GET("/value/:type/:metric", GetMetricParams)
 	mux.POST("/value/", GetMetricBody)
+
+	mux.GET("/ping", PingDB)
 }
 
 func GetMetrics(c *gin.Context) {
-
 	html := "<html><head><title>Metrics</title></head><body><h1>Metrics</h1><ul>"
-	for k, v := range metrics.GetMetrics() {
+	metrics, err := metrics.GetMetricsStr()
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+	}
+	for k, v := range *metrics {
 		html += fmt.Sprintf("<li>%s: %v</li>", k, v)
 	}
 	html += "</ul></body></html>"
@@ -174,4 +181,21 @@ func GetMetricBody(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, metric)
+}
+
+func PingDB(c *gin.Context) {
+	service := config.GetService("server")
+
+	if service.Config.DBConnStr == "" {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	db := database.GetDB()
+	if err := database.PingDB(db); err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

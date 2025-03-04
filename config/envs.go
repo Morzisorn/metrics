@@ -64,6 +64,11 @@ func (c *Config) parseServerEnvs() {
 	if err == nil {
 		c.Restore = b
 	}
+
+	d, err := getEnvString("DATABASE_DSN")
+	if err == nil {
+		c.DBConnStr = d
+	}
 }
 
 func getEnvFloat(key string) (float64, error) {
