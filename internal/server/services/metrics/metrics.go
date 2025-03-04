@@ -9,6 +9,7 @@ import (
 	"github.com/morzisorn/metrics/internal/models"
 	"github.com/morzisorn/metrics/internal/server/storage"
 	"github.com/morzisorn/metrics/internal/server/storage/file"
+	"github.com/morzisorn/metrics/internal/server/storage/memory"
 )
 
 type Metric struct {
@@ -96,12 +97,13 @@ func SaveMetrics() error {
 	lastSave := time.Now()
 	service := config.GetService("server")
 	file := file.GetFileStorage()
+	mem := memory.GetMemStorage()
 
 	for {
 		if time.Since(lastSave).Seconds() >= float64(service.Config.StoreInterval) {
 			lastSave = time.Now()
 
-			metrics, err := file.GetMetrics()
+			metrics, err := mem.GetMetrics()
 			if err != nil {
 				return err
 			}

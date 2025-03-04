@@ -48,19 +48,16 @@ func main() {
 	}
 
 	mux := createServer()
-	if !(service.Config.StoreInterval != 0 && service.Config.DBConnStr == "") {
-		if err := runServer(mux); err != nil {
-			logger.Log.Panic("Error running server", zap.Error(err))
-		}
-	} else {
-		go func(mux *gin.Engine) {
-			if err := runServer(mux); err != nil {
-				logger.Log.Panic("Error running server", zap.Error(err))
-			}
-		}(mux)
 
-		if err := metrics.SaveMetrics(); err != nil {
-			logger.Log.Panic("Error saving metrics", zap.Error(err))
-		}
+	if service.Config.StoreInterval != 0 && service.Config.DBConnStr == "" {
+		go func() {
+			if err := metrics.SaveMetrics(); err != nil {
+				logger.Log.Panic("Error saving metrics", zap.Error(err))
+			}
+		}()
+	}
+
+	if err := runServer(mux); err != nil {
+		logger.Log.Panic("Error running server", zap.Error(err))
 	}
 }
