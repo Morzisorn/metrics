@@ -154,16 +154,8 @@ func (c *FileStorageConsumer) ReadMetrics() (*map[string]float64, error) {
 }
 
 func (f *FileStorage) GetMetric(name string) (float64, bool) {
-	for {
-		metric, err := f.Consumer.ReadMetric()
-		if err != nil {
-			break
-		}
-		if metric.Name == name {
-			return metric.Value, true
-		}
-	}
-	return 0, false
+	mem := memory.GetMemStorage()
+	return mem.GetMetric(name)
 }
 
 func (f *FileStorage) GetMetrics() (*map[string]float64, error) {
