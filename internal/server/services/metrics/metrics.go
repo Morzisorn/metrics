@@ -82,13 +82,17 @@ func trimTrailingZeros(s string) string {
 func LoadMetricsFromFile() error {
 	service := config.GetService("server")
 	file := file.GetFileStorage()
+	mem := memory.GetMemStorage()
 
 	if service.Config.Restore {
 		metrics, err := file.Consumer.ReadMetrics()
 		if err != nil {
 			return err
 		}
-		file.SetMetrics(metrics)
+		err = mem.SetMetrics(metrics)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
