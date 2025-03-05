@@ -11,4 +11,6 @@ type Storage interface {
 	UpdateCounter(name string, value float64) (float64, error)
 	UpdateGauge(name string, value float64) error
 	WriteMetrics(*map[string]float64) error
+	UpdateCounters(*map[string]float64) error
+	UpdateGauges(*map[string]float64) error
 }

@@ -44,6 +44,28 @@ func (m *MemStorage) GetMetrics() (*map[string]float64, error) {
 	return &m.Metrics, nil
 }
 
+func (m *MemStorage) UpdateCounters(metrics *map[string]float64) error {
+	for name, value := range *metrics {
+		_, err := m.UpdateCounter(name, value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *MemStorage) UpdateGauges(metrics *map[string]float64) error {
+	for name, value := range *metrics {
+		err := m.UpdateGauge(name, value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *MemStorage) UpdateCounter(name string, value float64) (float64, error) {
 	metric, _ := m.GetMetric(name)
 	metric += float64(value)

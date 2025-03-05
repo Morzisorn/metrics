@@ -210,3 +210,23 @@ func (f *FileStorage) UpdateGauge(name string, value float64) error {
 func (f *FileStorage) WriteMetrics(metrics *map[string]float64) error {
 	return f.Producer.WriteMetrics(metrics)
 }
+
+func (f *FileStorage) UpdateCounters(metrics *map[string]float64) error {
+	mem := memory.GetMemStorage()
+	err := mem.UpdateCounters(metrics)
+	if err != nil {
+		return err
+	}
+
+	return f.WriteMetrics(&mem.Metrics)
+}
+func (f *FileStorage) UpdateGauges(metrics *map[string]float64) error {
+	mem := memory.GetMemStorage()
+
+	err := mem.UpdateGauges(metrics)
+	if err != nil {
+		return err
+	}
+
+	return f.WriteMetrics(&mem.Metrics)
+}

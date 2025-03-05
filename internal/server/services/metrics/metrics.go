@@ -72,6 +72,53 @@ func (m *Metric) UpdateMetric() error {
 	return nil
 }
 
+func UpdateMetrics(metrics *[]Metric) error {
+	var gauges = make(map[string]float64)
+	var counters = make(map[string]float64)
+
+	for _, m := range *metrics {
+		err := m.CheckMetric()
+		if err != nil {
+			return err
+		}
+
+		switch m.MType {
+		case "counter":
+			counters[m.ID] = float64(*m.Delta)
+		case "gauge":
+			gauges[m.ID] = *m.Value
+		}
+	}
+	st := storage.GetStorage()
+	if len(counters) > 0 {
+		err := st.UpdateGauges(&counters)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(gauges) > 0 {
+		err := st.UpdateGauges(&gauges)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *Metric) CheckMetric() error {
+	if m.ID == "" {
+		return fmt.Errorf("Invalid metric ID")
+
+	}
+
+	if m.Delta == nil && m.Value == nil {
+		return fmt.Errorf("Invalid metric value")
+	}
+	return nil
+}
+
 func trimTrailingZeros(s string) string {
 	s = strings.TrimRight(s, "0")
 	s = strings.TrimSuffix(s, ".")

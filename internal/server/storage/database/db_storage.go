@@ -55,6 +55,14 @@ func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) 
 	return val, nil
 }
 
+func  (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
+	return db.WriteMetrics(metrics)
+}
+
+func  (db *DBStorage) UpdateGauges(metrics *map[string]float64) error {
+	return db.WriteMetrics(metrics)
+}
+
 func (db *DBStorage) GetMetric(name string) (float64, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

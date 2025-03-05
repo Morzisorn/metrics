@@ -6,10 +6,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
-	"github.com/morzisorn/metrics/internal/server/storage/database"
 	"go.uber.org/zap"
 )
 
@@ -19,6 +17,7 @@ func RegisterMetricsRoutes(mux *gin.Engine) {
 	mux.GET("/", GetMetrics)
 	mux.POST("/update/:type/:metric/:value", UpdateMetricParams)
 	mux.POST("/update/", UpdateMetricBody)
+	mux.POST("/updates/", UpdateMetrics)
 	mux.GET("/value/:type/:metric", GetMetricParams)
 	mux.POST("/value/", GetMetricBody)
 
@@ -127,6 +126,31 @@ func UpdateMetricBody(c *gin.Context) {
 	c.JSON(http.StatusOK, metric)
 }
 
+func UpdateMetrics(c *gin.Context) {
+	if c.Request.Method != http.MethodPost {
+		c.String(http.StatusMethodNotAllowed, "Invalid request method")
+		return
+	}
+
+	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+		c.String(http.StatusMethodNotAllowed, "Invalid content type")
+		return
+	}
+
+	var met []metrics.Metric
+	if err := c.BindJSON(&met); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err := metrics.UpdateMetrics(&met)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+}
+
 func GetMetricParams(c *gin.Context) {
 	var metric metrics.Metric
 	metric.ID = c.Params.ByName("metric")
@@ -181,21 +205,4 @@ func GetMetricBody(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, metric)
-}
-
-func PingDB(c *gin.Context) {
-	service := config.GetService("server")
-
-	if service.Config.DBConnStr == "" {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	db := database.GetDB()
-	if err := database.PingDB(db); err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	c.Status(http.StatusOK)
 }
