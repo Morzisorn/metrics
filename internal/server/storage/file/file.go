@@ -207,6 +207,6 @@ func (f *FileStorage) UpdateGauge(name string, value float64) error {
 	return nil
 }
 
-func (f *FileStorage) SetMetrics(metrics *map[string]float64) error {
+func (f *FileStorage) WriteMetrics(metrics *map[string]float64) error {
 	return f.Producer.WriteMetrics(metrics)
 }

@@ -89,7 +89,7 @@ func LoadMetricsFromFile() error {
 		if err != nil {
 			return err
 		}
-		err = mem.SetMetrics(metrics)
+		err = mem.WriteMetrics(metrics)
 		if err != nil {
 			return err
 		}

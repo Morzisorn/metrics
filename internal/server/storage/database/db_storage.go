@@ -101,7 +101,7 @@ func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 	return &metrics, nil
 }
 
-func (db *DBStorage) SetMetrics(metrics *map[string]float64) error {
+func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 

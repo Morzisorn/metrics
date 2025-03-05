@@ -57,7 +57,7 @@ func (m *MemStorage) UpdateGauge(name string, value float64) error {
 	return nil
 }
 
-func (m *MemStorage) SetMetrics(metrics *map[string]float64) error {
+func (m *MemStorage) WriteMetrics(metrics *map[string]float64) error {
 	m.Metrics = *metrics
 	return nil
 }
