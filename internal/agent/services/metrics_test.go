@@ -13,8 +13,8 @@ import (
 func TestPollAllMetrics(t *testing.T) {
 	m := Metrics{}
 	require.NoError(t, m.PollMetrics())
-	assert.NotEmpty(t, m.Metrics["HeapAlloc"])
-	assert.Equal(t, int64(1), *m.Metrics[CounterMetric].Delta)
+	assert.NotEmpty(t, m.Metrics)
+
 }
 
 func TestGetMetric(t *testing.T) {

@@ -128,6 +128,7 @@ func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 		placeholder += 2
 		i += 1
 	}
+	
 	query += "ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
 
 	_, err := db.DB.Exec(ctx, query, args...)
