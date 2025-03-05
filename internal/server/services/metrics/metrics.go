@@ -109,12 +109,11 @@ func UpdateMetrics(metrics *[]Metric) error {
 
 func (m *Metric) CheckMetric() error {
 	if m.ID == "" {
-		return fmt.Errorf("Invalid metric ID")
-
+		return fmt.Errorf("invalid metric ID")
 	}
 
 	if m.Delta == nil && m.Value == nil {
-		return fmt.Errorf("Invalid metric value")
+		return fmt.Errorf("invalid metric value")
 	}
 	return nil
 }

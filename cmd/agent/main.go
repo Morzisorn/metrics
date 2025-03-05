@@ -25,10 +25,12 @@ func RunAgent() error {
 				return err
 			}
 			if time.Since(lastReport).Seconds() >= Service.Config.ReportInterval {
-				lastReport = time.Now()
-				err := c.SendMetrics(&m)
-				if err != nil {
-					return err
+				if len(m.Metrics) > 0 {
+					lastReport = time.Now()
+					err := c.SendMetrics(&m)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}

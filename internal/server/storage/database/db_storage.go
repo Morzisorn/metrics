@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -55,11 +56,11 @@ func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) 
 	return val, nil
 }
 
-func  (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
+func (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
 	return db.WriteMetrics(metrics)
 }
 
-func  (db *DBStorage) UpdateGauges(metrics *map[string]float64) error {
+func (db *DBStorage) UpdateGauges(metrics *map[string]float64) error {
 	return db.WriteMetrics(metrics)
 }
 
@@ -115,21 +116,18 @@ func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 
 	query := "INSERT INTO metrics(name, value) VALUES "
 	args := []interface{}{}
-	placeholder := 1
+	placeholders := []string{}
+
 	i := 1
-
 	for m, v := range *metrics {
-		query += fmt.Sprintf("(%d, %d)", placeholder, placeholder+1)
-		if i < len(*metrics)-1 {
-			query += ", "
-		}
-
+		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d)", i, i+1))
 		args = append(args, m, v)
-		placeholder += 2
-		i += 1
+		i += 2
 	}
-	
-	query += "ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
+
+	query += strings.Join(placeholders, ", ")
+
+	query += " ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
 
 	_, err := db.DB.Exec(ctx, query, args...)
 	if err != nil {
