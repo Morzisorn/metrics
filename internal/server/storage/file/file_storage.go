@@ -70,7 +70,15 @@ func (f *FileStorage) UpdateCounters(metrics *map[string]float64) error {
 		return err
 	}
 
-	return f.WriteMetrics(&mem.Metrics)
+	service := config.GetService("server")
+	if service.Config.StoreInterval == 0 {
+		err = f.Producer.WriteMetrics(&mem.Metrics)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 func (f *FileStorage) UpdateGauges(metrics *map[string]float64) error {
 	mem := memory.GetMemStorage()
@@ -80,5 +88,13 @@ func (f *FileStorage) UpdateGauges(metrics *map[string]float64) error {
 		return err
 	}
 
-	return f.WriteMetrics(&mem.Metrics)
+	service := config.GetService("server")
+	if service.Config.StoreInterval == 0 {
+		err = f.Producer.WriteMetrics(&mem.Metrics)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

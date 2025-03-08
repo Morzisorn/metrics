@@ -73,43 +73,39 @@ func (m *Metric) UpdateMetric() error {
 }
 
 func UpdateMetrics(metrics *[]Metric) error {
-	//var gauges = make(map[string]float64)
-	//var counters = make(map[string]float64)
-
-	//s := storage.GetStorage()
+	var gauges = make(map[string]float64)
+	var counters = make(map[string]float64)
 
 	for _, m := range *metrics {
 		err := m.CheckMetric()
 		if err != nil {
 			return err
 		}
-		m.UpdateMetric()
-		/*
-			switch m.MType {
-			case "counter":
-				counters[m.ID] = float64(*m.Delta)
 
-			case "gauge":
-				gauges[m.ID] = *m.Value
-			}
-		*/
+		switch m.MType {
+		case "counter":
+			counters[m.ID] = float64(*m.Delta)
+
+		case "gauge":
+			gauges[m.ID] = *m.Value
+		}
 	}
 
-	/*
-		if len(counters) > 0 {
-			err := s.UpdateCounters(&counters)
-			if err != nil {
-				return err
-			}
-		}
+	s := storage.GetStorage()
 
-		if len(gauges) > 0 {
-			err := s.UpdateGauges(&gauges)
-			if err != nil {
-				return err
-			}
+	if len(counters) > 0 {
+		err := s.UpdateCounters(&counters)
+		if err != nil {
+			return err
 		}
-	*/
+	}
+
+	if len(gauges) > 0 {
+		err := s.UpdateGauges(&gauges)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
