@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/morzisorn/metrics/config"
@@ -52,9 +53,9 @@ func GetFileStorage() *FileStorage {
 	return instanceFile
 }
 
-func NewFileStorageProducer(filename string) (*FileStorageProducer, error) {
+func NewFileStorageProducer(filepath string) (*FileStorageProducer, error) {
 	return &FileStorageProducer{
-		filename: filename,
+		filename: filepath,
 	}, nil
 }
 
@@ -63,8 +64,8 @@ type FileStorageConsumer struct {
 	decoder *json.Decoder
 }
 
-func NewFileStorageConsumer(filename string) (*FileStorageConsumer, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0666)
+func NewFileStorageConsumer(filepath string) (*FileStorageConsumer, error) {
+	file, err := os.OpenFile(filepath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,14 @@ func NewFileStorageConsumer(filename string) (*FileStorageConsumer, error) {
 	}, nil
 }
 
-func NewFileStorage(filepath string) (*FileStorage, error) {
+func NewFileStorage(filename string) (*FileStorage, error) {
+	basePath, err := config.GetProjectRoot()
+	if err != nil {
+		logger.Log.Error("Error getting project root ", zap.Error(err))
+		return nil, err
+	}
+	filepath := filepath.Join(basePath, "internal", "server", "storage", "file", filename)
+
 	producer, err := NewFileStorageProducer(filepath)
 	if err != nil {
 		return nil, err
