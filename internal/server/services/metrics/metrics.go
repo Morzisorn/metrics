@@ -20,7 +20,11 @@ func (m *Metric) GetMetric() error {
 	s := storage.GetStorage()
 	val, exist := s.GetMetric(m.ID)
 	if !exist {
-		return fmt.Errorf("metric not found")
+		mem := memory.GetMemStorage()
+		val, exist = mem.GetMetric(m.ID)
+		if !exist {
+			return fmt.Errorf("metric not found")
+		}
 	}
 
 	switch m.MType {
