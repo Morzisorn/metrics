@@ -59,27 +59,7 @@ func (c *HTTPClient) SendMetric(m agent.Metric) error {
 	return nil
 }
 
-func (c *HTTPClient) SendMetrics(m *agent.Metrics) error {
-	/*
-		url := fmt.Sprintf("http://%s/updates/", c.BaseURL)
-		body, err := json.Marshal(m)
-		if err != nil {
-			return err
-		}
-
-		resp, err := c.Client.R().
-			SetBody(body).
-			SetHeader("Content-Type", "application/json").
-			Post(url)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode() != http.StatusOK {
-			return fmt.Errorf("unexpected status code %d", resp.StatusCode())
-		}
-
-		return nil
-	*/
+func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 	for _, metric := range m.Metrics {
 		err := c.SendMetric(metric)
 		if err != nil {
@@ -88,6 +68,27 @@ func (c *HTTPClient) SendMetrics(m *agent.Metrics) error {
 		if metric.ID == agent.CounterMetric {
 			*metric.Delta = 0
 		}
+	}
+
+	return nil
+}
+
+func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
+	url := fmt.Sprintf("http://%s/updates/", c.BaseURL)
+	body, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Client.R().
+		SetBody(body).
+		SetHeader("Content-Type", "application/json").
+		Post(url)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
 	}
 
 	return nil
