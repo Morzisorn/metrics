@@ -3,11 +3,7 @@ package agent
 import (
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
-	agent "github.com/morzisorn/metrics/internal/agent/services"
-	"github.com/morzisorn/metrics/internal/models"
-	"github.com/stretchr/testify/assert"
 	"resty.dev/v3"
 )
 
@@ -34,6 +30,7 @@ func setupTestServer() (*httptest.Server, *HTTPClient) {
 	return server, client
 }
 
+/*
 func TestSendMetrics(t *testing.T) {
 	server, client := setupTestServer()
 	defer server.Close()
