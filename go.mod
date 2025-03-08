@@ -1,8 +1,8 @@
 module github.com/morzisorn/metrics
 
-go 1.23
+go 1.22
 
-toolchain go1.23.4
+toolchain go1.22.0
 
 require github.com/stretchr/testify v1.10.0
 
