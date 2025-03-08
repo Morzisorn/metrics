@@ -91,7 +91,7 @@ func UpdateMetrics(metrics *[]Metric) error {
 	}
 	st := storage.GetStorage()
 	if len(counters) > 0 {
-		err := st.UpdateGauges(&counters)
+		err := st.UpdateCounters(&counters)
 		if err != nil {
 			return err
 		}
