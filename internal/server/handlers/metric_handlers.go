@@ -153,7 +153,7 @@ func UpdateMetrics(c *gin.Context) {
 	}
 
 	updated := memory.GetMemStorage().Metrics
-	
+
 	slice := make([]metrics.Metric, len(updated))
 	var i int
 
@@ -172,6 +172,7 @@ func UpdateMetrics(c *gin.Context) {
 		slice[i] = metric
 		i++
 	}
+	fmt.Println("Metrics after bulk update: ", slice)
 
 	c.JSON(http.StatusOK, slice)
 }
@@ -224,9 +225,14 @@ func GetMetricBody(c *gin.Context) {
 
 	err := metric.GetMetric()
 	if err != nil {
-		metrics, _ := storage.GetStorage().GetMetrics()
+		metrics, err := storage.GetStorage().GetMetrics()
+		if err != nil {
+			fmt.Printf("Get metrics from interface storage error: %v\n", err)
+		}
 		logger.Log.Info("Metric not found", zap.Error(err))
-		fmt.Println("Mem storage: ", metrics)
+		fmt.Println("Interface storage: ", metrics)
+		mem := memory.GetMemStorage().Metrics
+		fmt.Println("Mem storage: ", mem)
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}
