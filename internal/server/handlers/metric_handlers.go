@@ -9,6 +9,7 @@ import (
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
 	"github.com/morzisorn/metrics/internal/server/storage"
+	"github.com/morzisorn/metrics/internal/server/storage/memory"
 	"go.uber.org/zap"
 )
 
@@ -151,15 +152,12 @@ func UpdateMetrics(c *gin.Context) {
 		return
 	}
 
-	updated, err := storage.GetStorage().GetMetrics()
-	if err != nil {
-		c.String(http.StatusBadRequest, err.Error())
-		return
-	}
-	slice := make([]metrics.Metric, len(*updated))
+	updated := memory.GetMemStorage().Metrics
+
+	slice := make([]metrics.Metric, len(updated))
 	var i int
 
-	for name, value := range *updated {
+	for name, value := range updated {
 		var metric metrics.Metric
 		if name == "PollCount" {
 			var v = int64(value)
