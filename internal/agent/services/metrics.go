@@ -45,7 +45,7 @@ type MetricsCollector interface {
 }
 
 type Metrics struct {
-	Metrics []Metric
+	Metrics map[string]Metric
 }
 
 type Metric struct {
@@ -60,35 +60,33 @@ const (
 func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	m.Metrics = []Metric{}
-
+	m.Metrics = make(map[string]Metric)
 	val := reflect.ValueOf(memStats)
 	for _, gauge := range RuntimeGauges {
 		metr, err := GetMetric(val, gauge)
 		if err != nil {
 			return err
 		}
-
-		m.Metrics = append(m.Metrics, metr)
+		m.Metrics[gauge] = metr
 	}
 
-	m.Metrics = append(m.Metrics, Metric{
+	m.Metrics[RandomValueMetric] = Metric{
 		Metric: models.Metric{
 			ID:    RandomValueMetric,
 			MType: "gauge",
 			Value: GetRandomValue(),
 		},
-	})
+	}
 
 	var counter int64 = 1
 
-	m.Metrics = append(m.Metrics, Metric{
+	m.Metrics[CounterMetric] = Metric{
 		Metric: models.Metric{
 			ID:    CounterMetric,
 			MType: "counter",
 			Delta: &counter,
 		},
-	})
+	}
 
 	return nil
 }

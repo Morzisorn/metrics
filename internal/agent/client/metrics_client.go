@@ -60,12 +60,12 @@ func (c *HTTPClient) SendMetric(m agent.Metric) error {
 }
 
 func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
-	for _, metric := range m.Metrics {
+	for name, metric := range m.Metrics {
 		err := c.SendMetric(metric)
 		if err != nil {
 			fmt.Println(err)
 		}
-		if metric.ID == agent.CounterMetric {
+		if name == agent.CounterMetric {
 			*metric.Delta = 0
 		}
 	}
@@ -75,7 +75,15 @@ func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 
 func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
 	url := fmt.Sprintf("http://%s/updates/", c.BaseURL)
-	body, err := json.Marshal(m)
+
+	slice := make([]agent.Metric, len(m.Metrics))
+	var i int
+	for _, metric := range m.Metrics {
+		slice[i] = metric
+		i++
+	}
+
+	body, err := json.Marshal(slice)
 	if err != nil {
 		return err
 	}
@@ -90,6 +98,8 @@ func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
 	}
+
+	*m.Metrics[agent.CounterMetric].Delta = 0
 
 	return nil
 }
