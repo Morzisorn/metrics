@@ -138,16 +138,14 @@ func UpdateMetrics(c *gin.Context) {
 		return
 	}
 
-	var met struct {
-		Metrics []metrics.Metric `json:"metrics"`
-	}
+	var met []metrics.Metric
 
 	if err := c.BindJSON(&met); err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err := metrics.UpdateMetrics(&met.Metrics)
+	err := metrics.UpdateMetrics(&met)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return
