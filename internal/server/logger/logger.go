@@ -15,6 +15,8 @@ func Init() error {
 
 	cfg.Level.SetLevel(zap.InfoLevel)
 
+	cfg.EncoderConfig.StacktraceKey = ""
+
 	zl, err := cfg.Build()
 	if err != nil {
 		return err

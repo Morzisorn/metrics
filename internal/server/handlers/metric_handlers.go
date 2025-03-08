@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"github.com/morzisorn/metrics/internal/server/storage"
 	"go.uber.org/zap"
 )
 
@@ -202,7 +203,9 @@ func GetMetricBody(c *gin.Context) {
 
 	err := metric.GetMetric()
 	if err != nil {
+		metrics, _ := storage.GetStorage().GetMetrics()
 		logger.Log.Info("Metric not found", zap.Error(err))
+		fmt.Println("Mem storage: ", metrics)
 		c.String(http.StatusNotFound, err.Error())
 		return
 	}

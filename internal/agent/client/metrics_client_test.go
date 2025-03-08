@@ -42,14 +42,14 @@ func TestSendMetrics(t *testing.T) {
 	metrics := &agent.Metrics{
 		Metrics: []agent.Metric{
 			{
-				models.Metric{
+				Metric: models.Metric{
 					ID:    "HeapAlloc",
 					MType: "gauge",
 					Value: &randomValue,
 				},
 			},
 			{
-				models.Metric{
+				Metric: models.Metric{
 					ID:    "PollCount",
 					MType: "counter",
 					Value: &randomValue,
