@@ -151,6 +151,7 @@ func UpdateMetrics(c *gin.Context) {
 		return
 	}
 
+	c.Status(http.StatusOK)
 }
 
 func GetMetricParams(c *gin.Context) {
