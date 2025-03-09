@@ -223,8 +223,8 @@ func GetMetricBody(c *gin.Context) {
 		return
 	}
 
-	err := metric.GetMetric()
-	if err != nil {
+	errr := metric.GetMetric()
+	if errr != nil {
 		metrics, err := storage.GetStorage().GetMetrics()
 		if err != nil {
 			fmt.Printf("Get metrics from interface storage error: %v\n", err)
@@ -236,7 +236,7 @@ func GetMetricBody(c *gin.Context) {
 		fmt.Println("Mem storage: ", mem.Metrics)
 		val, exist := mem.GetMetric(metric.ID)
 		if !exist {
-			c.String(http.StatusNotFound, err.Error())
+			c.String(http.StatusNotFound, errr.Error())
 			return
 		}
 		switch metric.MType {
