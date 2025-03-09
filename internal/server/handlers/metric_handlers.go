@@ -231,10 +231,21 @@ func GetMetricBody(c *gin.Context) {
 		}
 		logger.Log.Info("Metric not found", zap.Error(err))
 		fmt.Println("Interface storage: ", metrics)
-		mem := memory.GetMemStorage().Metrics
-		fmt.Println("Mem storage: ", mem)
-		c.String(http.StatusNotFound, err.Error())
-		return
+
+		mem := memory.GetMemStorage()
+		fmt.Println("Mem storage: ", mem.Metrics)
+		val, exist := mem.GetMetric(metric.ID)
+		if !exist {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		switch metric.MType {
+		case "counter":
+			v := int64(val)
+			metric.Delta = &v
+		case "gauge":
+			metric.Value = &val
+		}
 	}
 
 	c.JSON(http.StatusOK, metric)
