@@ -66,7 +66,7 @@ func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 			fmt.Println(err)
 		}
 		if name == agent.CounterMetric {
-			*metric.Delta = 0
+			*m.Metrics[agent.CounterMetric].Delta = 0
 		}
 	}
 
