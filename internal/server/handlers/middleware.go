@@ -58,14 +58,6 @@ func GzipMiddleware() gin.HandlerFunc {
 		c.Writer = gzw
 		c.Next()
 
-		/*
-			if gzw.buffer.Len() == 0 {
-				c.Writer.WriteHeader(gzw.status)
-				gzw.Close()
-				return
-			}
-		*/
-
 		gzw.Close()
 
 		contentType := c.Writer.Header().Get("Content-Type")

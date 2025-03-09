@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
-	"github.com/morzisorn/metrics/internal/server/storage"
 	"github.com/morzisorn/metrics/internal/server/storage/memory"
 	"go.uber.org/zap"
 )
@@ -223,29 +222,10 @@ func GetMetricBody(c *gin.Context) {
 		return
 	}
 
-	errr := metric.GetMetric()
-	if errr != nil {
-		metrics, err := storage.GetStorage().GetMetrics()
-		if err != nil {
-			fmt.Printf("Get metrics from interface storage error: %v\n", err)
-		}
-		logger.Log.Info("Metric not found", zap.Error(err))
-		fmt.Println("Interface storage: ", metrics)
-
-		mem := memory.GetMemStorage()
-		fmt.Println("Mem storage: ", mem.Metrics)
-		val, exist := mem.GetMetric(metric.ID)
-		if !exist {
-			c.String(http.StatusNotFound, errr.Error())
-			return
-		}
-		switch metric.MType {
-		case "counter":
-			v := int64(val)
-			metric.Delta = &v
-		case "gauge":
-			metric.Value = &val
-		}
+	err := metric.GetMetric()
+	if err != nil {
+		c.String(http.StatusNotFound, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, metric)

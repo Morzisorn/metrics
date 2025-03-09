@@ -11,9 +11,7 @@ func (f *FileStorage) GetMetric(name string) (float64, bool) {
 }
 
 func (f *FileStorage) GetMetrics() (*map[string]float64, error) {
-	//return f.Consumer.ReadMetrics()
-	mem := memory.GetMemStorage()
-	return &mem.Metrics, nil
+	return f.Consumer.ReadMetrics()
 }
 
 func (f *FileStorage) UpdateCounter(name string, value float64) (float64, error) {
