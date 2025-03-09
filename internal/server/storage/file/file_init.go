@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/morzisorn/metrics/config"
@@ -75,18 +74,20 @@ func NewFileStorageConsumer(filepath string) (*FileStorageConsumer, error) {
 }
 
 func NewFileStorage(filename string) (*FileStorage, error) {
-	basePath, err := config.GetProjectRoot()
-	if err != nil {
-		logger.Log.Error("Error getting project root ", zap.Error(err))
-		return nil, err
-	}
-	filepath := filepath.Join(basePath, "internal", "server", "storage", "file", filename)
+	/*
+		basePath, err := config.GetProjectRoot()
+		if err != nil {
+			logger.Log.Error("Error getting project root ", zap.Error(err))
+			return nil, err
+		}
+		filepath := filepath.Join(basePath, "internal", "server", "storage", "file", filename)
+	*/
 
-	producer, err := NewFileStorageProducer(filepath)
+	producer, err := NewFileStorageProducer(filename)
 	if err != nil {
 		return nil, err
 	}
-	consumer, err := NewFileStorageConsumer(filepath)
+	consumer, err := NewFileStorageConsumer(filename)
 	if err != nil {
 		return nil, err
 	}
