@@ -84,7 +84,7 @@ func UpdateMetrics(metrics *[]Metric) error {
 
 		switch m.MType {
 		case "counter":
-			counters[m.ID] = float64(*m.Delta)
+			counters[m.ID] += float64(*m.Delta)
 
 		case "gauge":
 			gauges[m.ID] = *m.Value

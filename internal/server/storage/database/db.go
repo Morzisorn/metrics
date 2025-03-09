@@ -23,6 +23,7 @@ var (
 
 type DBStorage struct {
 	DB *pgx.Conn
+	mu sync.Mutex
 }
 
 func GetStorage() models.Storage {

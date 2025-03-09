@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
-	"github.com/morzisorn/metrics/internal/server/storage/memory"
 	"go.uber.org/zap"
 )
 
@@ -150,30 +149,30 @@ func UpdateMetrics(c *gin.Context) {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
+	/*
+		updated := memory.GetMemStorage().Metrics
 
-	updated := memory.GetMemStorage().Metrics
+		slice := make([]metrics.Metric, len(updated))
+		var i int
 
-	slice := make([]metrics.Metric, len(updated))
-	var i int
-
-	for name, value := range updated {
-		var metric metrics.Metric
-		if name == "PollCount" {
-			var v = int64(value)
-			metric.ID = name
-			metric.MType = "counter"
-			metric.Delta = &v
-		} else {
-			metric.ID = name
-			metric.MType = "gauge"
-			metric.Value = &value
+		for name, value := range updated {
+			var metric metrics.Metric
+			if name == "PollCount" {
+				var v = int64(value)
+				metric.ID = name
+				metric.MType = "counter"
+				metric.Delta = &v
+			} else {
+				metric.ID = name
+				metric.MType = "gauge"
+				metric.Value = &value
+			}
+			slice[i] = metric
+			i++
 		}
-		slice[i] = metric
-		i++
-	}
-	fmt.Println("Metrics after bulk update: ", slice)
+	*/
 
-	c.JSON(http.StatusOK, slice)
+	c.Status(http.StatusOK)
 }
 
 func GetMetricParams(c *gin.Context) {

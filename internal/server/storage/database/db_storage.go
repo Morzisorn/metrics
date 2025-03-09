@@ -22,6 +22,9 @@ func (db *DBStorage) UpdateGauge(name string, value float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	var val float64
 	err := db.DB.QueryRow(ctx,
 		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
@@ -38,6 +41,9 @@ func (db *DBStorage) UpdateGauge(name string, value float64) error {
 func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
 
 	var val float64
 
@@ -61,6 +67,9 @@ func (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	query := "INSERT INTO metrics(name, value) VALUES "
 	args := []interface{}{}
 	placeholders := []string{}
@@ -80,7 +89,14 @@ func (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
 	if err != nil {
 		return err
 	}
-
+	/*
+		for name, value := range *metrics {
+			_, err := db.UpdateCounter(name, value)
+			if err != nil {
+				return err
+			}
+		}
+	*/
 	return nil
 }
 
@@ -91,6 +107,9 @@ func (db *DBStorage) UpdateGauges(metrics *map[string]float64) error {
 func (db *DBStorage) GetMetric(name string) (float64, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
 
 	var val float64
 
@@ -106,6 +125,9 @@ func (db *DBStorage) GetMetric(name string) (float64, bool) {
 func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
 
 	rows, err := db.DB.Query(ctx,
 		"SELECT name, value FROM metrics")
@@ -137,6 +159,9 @@ func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
 
 	query := "INSERT INTO metrics(name, value) VALUES "
 	args := []interface{}{}
