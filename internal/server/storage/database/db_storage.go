@@ -40,12 +40,13 @@ func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) 
 	defer cancel()
 
 	var val float64
-	val, _ = db.GetMetric(name)
-
-	value += val
 
 	err := db.DB.QueryRow(ctx,
-		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
+		`INSERT INTO metrics(name, value) 
+		VALUES($1, $2) 
+		ON CONFLICT (name) DO UPDATE 
+		SET value = metrics.value + EXCLUDED.value 
+		RETURNING value`,
 		name, value).
 		Scan(&val)
 
@@ -57,7 +58,30 @@ func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) 
 }
 
 func (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
-	return db.WriteMetrics(metrics)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := "INSERT INTO metrics(name, value) VALUES "
+	args := []interface{}{}
+	placeholders := []string{}
+
+	i := 1
+	for m, v := range *metrics {
+		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d)", i, i+1))
+		args = append(args, m, v)
+		i += 2
+	}
+
+	query += strings.Join(placeholders, ", ")
+
+	query += " ON CONFLICT (name) DO UPDATE SET value = metrics.value + EXCLUDED.value;"
+
+	_, err := db.DB.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *DBStorage) UpdateGauges(metrics *map[string]float64) error {
