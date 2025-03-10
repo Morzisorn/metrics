@@ -6,7 +6,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+var (
+	retryDelays = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
+
+	retriableErrors = []string{
+		pgerrcode.SerializationFailure,
+		pgerrcode.DeadlockDetected,
+		pgerrcode.TooManyConnections,
+		pgerrcode.ObjectNotInPrerequisiteState,
+		pgerrcode.QueryCanceled,
+		pgerrcode.UniqueViolation,
+	}
 )
 
 func PingDB(db *pgxpool.Pool) error {
@@ -24,11 +40,9 @@ func (db *DBStorage) UpdateGauge(name string, value float64) error {
 	defer db.mu.Unlock()
 
 	var val float64
-	err := db.Pool.QueryRow(ctx,
-		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
-		name, value).
-		Scan(&val)
+	query := "INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value"
 
+	_, err := db.retryQueryRow(ctx, query, &val, name, value)
 	if err != nil {
 		return err
 	}
@@ -45,18 +59,18 @@ func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) 
 
 	var val float64
 
-	err := db.Pool.QueryRow(ctx,
-		`INSERT INTO metrics(name, value) 
+	query := `INSERT INTO metrics(name, value) 
 		VALUES($1, $2) 
 		ON CONFLICT (name) DO UPDATE 
 		SET value = metrics.value + EXCLUDED.value 
-		RETURNING value`,
-		name, value).
-		Scan(&val)
+		RETURNING value`
+
+	fl, err := db.retryQueryRow(ctx, query, &val, name, value)
 
 	if err != nil {
 		return 0, err
 	}
+	val = fl.(float64)
 
 	return val, nil
 }
@@ -83,7 +97,7 @@ func (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
 
 	query += " ON CONFLICT (name) DO UPDATE SET value = metrics.value + EXCLUDED.value;"
 
-	_, err := db.Pool.Exec(ctx, query, args...)
+	_, err := db.retryExec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -103,12 +117,14 @@ func (db *DBStorage) GetMetric(name string) (float64, bool) {
 	defer db.mu.Unlock()
 
 	var val float64
+	query := "SELECT value FROM metrics WHERE name = $1"
 
-	err := db.Pool.QueryRow(ctx,
-		"SELECT value FROM metrics WHERE name = $1", name).Scan(&val)
+	fl, err := db.retryQueryRow(ctx, query, &val, name)
 	if err != nil {
 		return 0, false
 	}
+
+	val = fl.(float64)
 
 	return val, true
 }
@@ -120,8 +136,9 @@ func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	rows, err := db.Pool.Query(ctx,
-		"SELECT name, value FROM metrics")
+	query := "SELECT name, value FROM metrics"
+
+	rows, err := db.retryQuery(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +186,7 @@ func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 
 	query += " ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
 
-	_, err := db.Pool.Exec(ctx, query, args...)
+	_, err := db.retryExec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -181,4 +198,65 @@ func (db *DBStorage) Close() {
 	db.Pool.Close()
 }
 
-//func (db *DBStorage)
+func (db *DBStorage) retryQueryRow(ctx context.Context, query string, result interface{}, args ...interface{}) (interface{}, error) {
+	var err error
+	for i := 0; i < len(retryDelays); i++ {
+		err = db.Pool.QueryRow(ctx, query, args).Scan(result)
+
+		if err == nil {
+			return result, nil
+		}
+
+		if contains(retriableErrors, err.Error()) {
+			continue
+		}
+		return nil, err
+	}
+	return nil, err
+}
+
+func (db *DBStorage) retryQuery(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
+	var err error
+	var rows pgx.Rows
+
+	for i := 0; i < len(retryDelays); i++ {
+		rows, err = db.Pool.Query(ctx, query, args)
+
+		if err == nil {
+			return rows, nil
+		}
+
+		if contains(retriableErrors, err.Error()) {
+			continue
+		}
+		return nil, err
+	}
+	return nil, err
+}
+
+func (db *DBStorage) retryExec(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error) {
+	var err error
+
+	for i := 0; i < len(retryDelays); i++ {
+		tag, err := db.Pool.Exec(ctx, query, args)
+
+		if err == nil {
+			return tag, nil
+		}
+
+		if contains(retriableErrors, err.Error()) {
+			continue
+		}
+		return pgconn.CommandTag{}, err
+	}
+	return pgconn.CommandTag{}, err
+}
+
+func contains(slice []string, item string) bool {
+	for _, i := range slice {
+		if i == item {
+			return true
+		}
+	}
+	return false
+}
