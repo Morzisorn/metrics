@@ -149,28 +149,6 @@ func UpdateMetrics(c *gin.Context) {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
-	/*
-		updated := memory.GetMemStorage().Metrics
-
-		slice := make([]metrics.Metric, len(updated))
-		var i int
-
-		for name, value := range updated {
-			var metric metrics.Metric
-			if name == "PollCount" {
-				var v = int64(value)
-				metric.ID = name
-				metric.MType = "counter"
-				metric.Delta = &v
-			} else {
-				metric.ID = name
-				metric.MType = "gauge"
-				metric.Value = &value
-			}
-			slice[i] = metric
-			i++
-		}
-	*/
 
 	c.Status(http.StatusOK)
 }

@@ -201,7 +201,7 @@ func (db *DBStorage) Close() {
 func (db *DBStorage) retryQueryRow(ctx context.Context, query string, result interface{}, args ...interface{}) (interface{}, error) {
 	var err error
 	for i := 0; i < len(retryDelays); i++ {
-		err = db.Pool.QueryRow(ctx, query, args).Scan(result)
+		err = db.Pool.QueryRow(ctx, query, args...).Scan(&result)
 
 		if err == nil {
 			return result, nil
@@ -220,7 +220,7 @@ func (db *DBStorage) retryQuery(ctx context.Context, query string, args ...inter
 	var rows pgx.Rows
 
 	for i := 0; i < len(retryDelays); i++ {
-		rows, err = db.Pool.Query(ctx, query, args)
+		rows, err = db.Pool.Query(ctx, query, args...)
 
 		if err == nil {
 			return rows, nil
@@ -238,7 +238,7 @@ func (db *DBStorage) retryExec(ctx context.Context, query string, args ...interf
 	var err error
 
 	for i := 0; i < len(retryDelays); i++ {
-		tag, err := db.Pool.Exec(ctx, query, args)
+		tag, err := db.Pool.Exec(ctx, query, args...)
 
 		if err == nil {
 			return tag, nil
