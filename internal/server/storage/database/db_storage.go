@@ -6,12 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/morzisorn/metrics/internal/server/logger"
-	"go.uber.org/zap"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func PingDB(db *pgx.Conn) error {
+func PingDB(db *pgxpool.Pool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -26,7 +24,7 @@ func (db *DBStorage) UpdateGauge(name string, value float64) error {
 	defer db.mu.Unlock()
 
 	var val float64
-	err := db.DB.QueryRow(ctx,
+	err := db.Pool.QueryRow(ctx,
 		"INSERT INTO metrics(name, value) VALUES($1, $2) ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value RETURNING value",
 		name, value).
 		Scan(&val)
@@ -47,7 +45,7 @@ func (db *DBStorage) UpdateCounter(name string, value float64) (float64, error) 
 
 	var val float64
 
-	err := db.DB.QueryRow(ctx,
+	err := db.Pool.QueryRow(ctx,
 		`INSERT INTO metrics(name, value) 
 		VALUES($1, $2) 
 		ON CONFLICT (name) DO UPDATE 
@@ -85,18 +83,11 @@ func (db *DBStorage) UpdateCounters(metrics *map[string]float64) error {
 
 	query += " ON CONFLICT (name) DO UPDATE SET value = metrics.value + EXCLUDED.value;"
 
-	_, err := db.DB.Exec(ctx, query, args...)
+	_, err := db.Pool.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
-	/*
-		for name, value := range *metrics {
-			_, err := db.UpdateCounter(name, value)
-			if err != nil {
-				return err
-			}
-		}
-	*/
+
 	return nil
 }
 
@@ -113,7 +104,7 @@ func (db *DBStorage) GetMetric(name string) (float64, bool) {
 
 	var val float64
 
-	err := db.DB.QueryRow(ctx,
+	err := db.Pool.QueryRow(ctx,
 		"SELECT value FROM metrics WHERE name = $1", name).Scan(&val)
 	if err != nil {
 		return 0, false
@@ -129,7 +120,7 @@ func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	rows, err := db.DB.Query(ctx,
+	rows, err := db.Pool.Query(ctx,
 		"SELECT name, value FROM metrics")
 	if err != nil {
 		return nil, err
@@ -178,7 +169,7 @@ func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 
 	query += " ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value;"
 
-	_, err := db.DB.Exec(ctx, query, args...)
+	_, err := db.Pool.Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -187,8 +178,7 @@ func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 }
 
 func (db *DBStorage) Close() {
-	err := db.DB.Close(context.Background())
-	if err != nil {
-		logger.Log.Panic("DB close error: ", zap.Error(err))
-	}
+	db.Pool.Close()
 }
+
+//func (db *DBStorage)

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/storage/models"
@@ -17,29 +17,29 @@ var (
 	instanceStorage models.Storage
 	onceStorage     sync.Once
 
-	instanceDB *pgx.Conn
+	instanceDB *pgxpool.Pool
 	onceDB     sync.Once
 )
 
 type DBStorage struct {
-	DB *pgx.Conn
-	mu sync.Mutex
+	Pool *pgxpool.Pool
+	mu   sync.Mutex
 }
 
 func GetStorage() models.Storage {
 	onceStorage.Do(func() {
 		instanceStorage = &DBStorage{
-			DB: GetDB(),
+			Pool: GetDB(),
 		}
 	})
 	return instanceStorage
 }
 
-func GetDB() *pgx.Conn {
+func GetDB() *pgxpool.Pool {
 	onceDB.Do(func() {
 		var err error
 		s := config.GetService("server")
-		instanceDB, err = pgx.Connect(context.Background(), s.Config.DBConnStr)
+		instanceDB, err = pgxpool.New(context.Background(), s.Config.DBConnStr)
 		if err != nil {
 			logger.Log.Panic("Unable to connect to database: ", zap.Error(err))
 		}
@@ -53,7 +53,7 @@ func GetDB() *pgx.Conn {
 	return instanceDB
 }
 
-func createTables(db *pgx.Conn) error {
+func createTables(db *pgxpool.Pool) error {
 	rootDir, err := config.GetProjectRoot()
 	if err != nil {
 		return err
