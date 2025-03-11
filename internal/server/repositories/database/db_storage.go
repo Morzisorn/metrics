@@ -112,8 +112,8 @@ func (db *DBStorage) GetMetric(name string) (float64, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	db.mu.RLock()
+	defer db.mu.RUnlock()
 
 	var val float64
 	query := "SELECT value FROM metrics WHERE name = $1"
@@ -132,8 +132,8 @@ func (db *DBStorage) GetMetrics() (*map[string]float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	db.mu.RLock()
+	defer db.mu.RUnlock()
 
 	query := "SELECT name, value FROM metrics"
 

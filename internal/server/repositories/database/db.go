@@ -22,18 +22,10 @@ var (
 
 type DBStorage struct {
 	Pool *pgxpool.Pool
-	mu   sync.Mutex
+	mu   sync.RWMutex
 }
 
 func NewStorage() *DBStorage {
-	/*
-		onceStorage.Do(func() {
-			instanceStorage = &DBStorage{
-				Pool: GetDB(),
-			}
-		})
-		return instanceStorage
-	*/
 	return &DBStorage{Pool: GetDBPool()}
 }
 

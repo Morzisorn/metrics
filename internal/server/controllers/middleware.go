@@ -113,6 +113,6 @@ func (g *gzipResponseWriter) Close() {
 }
 
 func (g *gzipResponseWriter) WriteHeader(code int) {
-	g.status = code                    // Сохраняем код ответа
-	g.ResponseWriter.WriteHeader(code) // Передаём оригинальному ResponseWriter
+	g.status = code                    
+	g.ResponseWriter.WriteHeader(code) 
 }

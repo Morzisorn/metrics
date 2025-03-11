@@ -22,23 +22,7 @@ type Metric struct {
 	Value float64 `json:"value"`
 }
 
-/*
-var (
-	instanceStorage models.Storage
-	onceStorage     sync.Once
-
-	instanceFile *FileStorage
-	onceFile     sync.Once
-)
-*/
-
 func NewStorage(filepath string) (*FileStorage, error) {
-	/*
-		onceStorage.Do(func() {
-			instanceStorage = GetFileStorage()
-		})
-		return instanceStorage
-	*/
 	cons, err := NewFileStorageConsumer(filepath)
 	if err != nil {
 		return nil, err
@@ -48,21 +32,6 @@ func NewStorage(filepath string) (*FileStorage, error) {
 		Consumer: cons,
 	}, nil
 }
-
-/*
-func GetFileStorage() *FileStorage {
-	onceFile.Do(func() {
-		var err error
-		service := config.GetService("server")
-		instanceFile, err = NewFileStorage(service.Config.FileStoragePath)
-		if err != nil {
-			logger.Log.Panic("Error file loading storage", zap.Error(err))
-		}
-	})
-
-	return instanceFile
-}
-*/
 
 func NewFileStorageProducer(filepath string) *FileStorageProducer {
 	return &FileStorageProducer{filename: filepath}
@@ -83,24 +52,6 @@ func NewFileStorageConsumer(filepath string) (*FileStorageConsumer, error) {
 		decoder: json.NewDecoder(file),
 	}, nil
 }
-
-/*
-func NewFileStorage(filename string) (*FileStorage, error) {
-	producer, err := NewFileStorageProducer(filename)
-	if err != nil {
-		return nil, err
-	}
-	consumer, err := NewFileStorageConsumer(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	return &FileStorage{
-		Producer: producer,
-		Consumer: consumer,
-	}, nil
-}
-*/
 
 func (p *FileStorageProducer) WriteMetric(name string, value float64) error {
 	metric := Metric{
