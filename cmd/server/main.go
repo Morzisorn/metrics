@@ -7,14 +7,21 @@ import (
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/controllers"
 	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/morzisorn/metrics/internal/server/repositories"
+	"github.com/morzisorn/metrics/internal/server/services/health"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"github.com/morzisorn/metrics/internal/server/services/pages"
 )
 
 var (
-	service *config.Service
+	cnfg *config.Service
 )
 
-func createServer() *gin.Engine {
+func createServer(
+	mc *controllers.MetricController,
+	pc *controllers.PagesController,
+	hc *controllers.HealthController,
+) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
 	mux.Use(
@@ -22,47 +29,61 @@ func createServer() *gin.Engine {
 		controllers.GzipMiddleware(),
 	)
 
-	registerMetricsRoutes(mux)
+	registerMetricsRoutes(mux, mc)
+	registerPagesRoutes(mux, pc)
+	registerHealthRoutes(mux, hc)
 
 	return mux
 }
 
-func registerMetricsRoutes(mux *gin.Engine) {
-	mux.GET("/", controllers.GetMetrics)
-	mux.POST("/update/:type/:metric/:value", controllers.UpdateMetricParams)
-	mux.POST("/update/", controllers.UpdateMetricBody)
-	mux.POST("/updates/", controllers.UpdateMetrics)
-	mux.GET("/value/:type/:metric", controllers.GetMetricParams)
-	mux.POST("/value/", controllers.GetMetricBody)
+func registerMetricsRoutes(mux *gin.Engine, mc *controllers.MetricController) {
+	mux.POST("/update/:type/:metric/:value", mc.UpdateMetricParams)
+	mux.POST("/update/", mc.UpdateMetricBody)
+	mux.POST("/updates/", mc.UpdateMetrics)
+	mux.GET("/value/:type/:metric", mc.GetMetricParams)
+	mux.POST("/value/", mc.GetMetricBody)
+}
 
-	mux.GET("/ping", controllers.PingDB)
+func registerPagesRoutes(mux *gin.Engine, pc *controllers.PagesController) {
+	mux.GET("/", pc.GetMetricsPage)
+}
+
+func registerHealthRoutes(mux *gin.Engine, hc *controllers.HealthController) {
+	mux.GET("/ping", hc.PingDB)
 }
 
 func runServer(mux *gin.Engine) error {
 	if err := logger.Init(); err != nil {
 		return err
 	}
-	logger.Log.Info("Starting server on ", zap.String("address", service.Config.Addr))
+	logger.Log.Info("Starting server on ", zap.String("address", cnfg.Config.Addr))
 
-	return mux.Run(service.Config.Addr)
+	return mux.Run(cnfg.Config.Addr)
 }
 
 func main() {
-	service = config.GetService("server")
+	cnfg = config.GetService("server")
 
-	if service.Config.DBConnStr == "" {
-		if service.Config.Restore {
-			if err := metrics.LoadMetricsFromFile(); err != nil {
-				logger.Log.Panic("Error loading metrics", zap.Error(err))
-			}
+	storage := repositories.NewStorage(cnfg.Config)
+	metricsService := metrics.NewMetricService(storage)
+	pagesService := pages.NewPagesService(metricsService)
+	healthService := health.NewHealthService(storage)
+
+	if cnfg.Config.StorageType == "file" && cnfg.Config.Restore {
+		if err := metricsService.LoadMetricsFromFile(); err != nil {
+			logger.Log.Panic("Error loading metrics", zap.Error(err))
 		}
 	}
 
-	mux := createServer()
+	metricsController := controllers.NewMetricController(metricsService)
+	pagesController := controllers.NewPagesController(pagesService)
+	healthController := controllers.NewHealthController(healthService)
 
-	if service.Config.StoreInterval != 0 && service.Config.DBConnStr == "" {
+	mux := createServer(metricsController, pagesController, healthController)
+
+	if cnfg.Config.StoreInterval != 0 && cnfg.Config.DBConnStr == "" {
 		go func() {
-			if err := metrics.SaveMetrics(); err != nil {
+			if err := metricsService.SaveMetrics(); err != nil {
 				logger.Log.Panic("Error saving metrics", zap.Error(err))
 			}
 		}()

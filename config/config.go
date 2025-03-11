@@ -12,7 +12,9 @@ import (
 
 type Config struct {
 	//Common
-	Addr string
+	AppType     string
+	Addr        string
+	StorageType string
 
 	//Agent
 	PollInterval   float64
@@ -57,6 +59,17 @@ func New(app string) (*Service, error) {
 		return &Service{
 			Config: *c,
 		}, fmt.Errorf("error parsing env: %v", err)
+	}
+
+	c.AppType = app
+
+	switch {
+	case c.DBConnStr != "":
+		c.StorageType = "db"
+	case c.FileStoragePath != "":
+		c.StorageType = "file"
+	default:
+		c.StorageType = "memory"
 	}
 
 	return &Service{

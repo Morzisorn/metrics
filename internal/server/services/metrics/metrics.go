@@ -7,18 +7,24 @@ import (
 
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/models"
-	"github.com/morzisorn/metrics/internal/server/storage"
-	"github.com/morzisorn/metrics/internal/server/storage/file"
-	"github.com/morzisorn/metrics/internal/server/storage/memory"
+	rep "github.com/morzisorn/metrics/internal/server/repositories"
+	"github.com/morzisorn/metrics/internal/server/repositories/memory"
 )
+
+type MetricService struct {
+	storage rep.Storage
+}
 
 type Metric struct {
 	models.Metric
 }
 
-func (m *Metric) GetMetric() error {
-	s := storage.GetStorage()
-	val, exist := s.GetMetric(m.ID)
+func NewMetricService(storage rep.Storage) *MetricService {
+	return &MetricService{storage: storage}
+}
+
+func (ms *MetricService) GetMetric(m *Metric) error {
+	val, exist := ms.storage.GetMetric(m.ID)
 	if !exist {
 		return fmt.Errorf("metric not found")
 	}
@@ -36,9 +42,8 @@ func (m *Metric) GetMetric() error {
 	return nil
 }
 
-func GetMetricsStr() (*map[string]string, error) {
-	s := storage.GetStorage()
-	metrics, err := s.GetMetrics()
+func (ms *MetricService) GetMetricsStr() (*map[string]string, error) {
+	metrics, err := ms.storage.GetMetrics()
 	if err != nil {
 		return nil, err
 	}
@@ -50,18 +55,16 @@ func GetMetricsStr() (*map[string]string, error) {
 	return &metricsTrimmed, nil
 }
 
-func (m *Metric) UpdateMetric() error {
-	s := storage.GetStorage()
-
+func (ms *MetricService) UpdateMetric(m *Metric) error {
 	switch m.MType {
 	case "counter":
-		updated, err := s.UpdateCounter(m.ID, float64(*m.Delta))
+		updated, err := ms.storage.UpdateCounter(m.ID, float64(*m.Delta))
 		if err != nil {
 			return err
 		}
 		*m.Delta = int64(updated)
 	case "gauge":
-		err := s.UpdateGauge(m.ID, *m.Value)
+		err := ms.storage.UpdateGauge(m.ID, *m.Value)
 		if err != nil {
 			return err
 		}
@@ -72,7 +75,7 @@ func (m *Metric) UpdateMetric() error {
 	return nil
 }
 
-func UpdateMetrics(metrics *[]Metric) error {
+func (ms *MetricService) UpdateMetrics(metrics *[]Metric) error {
 	var gauges = make(map[string]float64)
 	var counters = make(map[string]float64)
 
@@ -91,17 +94,15 @@ func UpdateMetrics(metrics *[]Metric) error {
 		}
 	}
 
-	s := storage.GetStorage()
-
 	if len(counters) > 0 {
-		err := s.UpdateCounters(&counters)
+		err := ms.storage.UpdateCounters(&counters)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(gauges) > 0 {
-		err := s.UpdateGauges(&gauges)
+		err := ms.storage.UpdateGauges(&gauges)
 		if err != nil {
 			return err
 		}
@@ -128,13 +129,12 @@ func trimTrailingZeros(s string) string {
 	return s
 }
 
-func LoadMetricsFromFile() error {
+func (ms *MetricService) LoadMetricsFromFile() error {
 	service := config.GetService("server")
-	file := file.GetFileStorage()
-	mem := memory.GetMemStorage()
+	mem := memory.GetStorage()
 
 	if service.Config.Restore {
-		metrics, err := file.Consumer.ReadMetrics()
+		metrics, err := ms.storage.GetMetrics()
 		if err != nil {
 			return err
 		}
@@ -146,11 +146,10 @@ func LoadMetricsFromFile() error {
 	return nil
 }
 
-func SaveMetrics() error {
+func (ms *MetricService) SaveMetrics() error {
 	lastSave := time.Now()
 	service := config.GetService("server")
-	file := file.GetFileStorage()
-	mem := memory.GetMemStorage()
+	mem := memory.GetStorage()
 
 	for {
 		if time.Since(lastSave).Seconds() >= float64(service.Config.StoreInterval) {
@@ -161,7 +160,7 @@ func SaveMetrics() error {
 				return err
 			}
 
-			err = file.Producer.WriteMetrics(metrics)
+			err = ms.storage.WriteMetrics(metrics)
 			if err != nil {
 				return err
 			}
