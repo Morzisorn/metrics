@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	"github.com/morzisorn/metrics/internal/server/logger"
+	"go.uber.org/zap"
 )
 
 func loadEnvFile(envPath string) error {
@@ -43,7 +45,10 @@ func (c *Config) parseAgentEnvs() {
 }
 
 func (c *Config) parseServerEnvs() {
-	c.parseServerFlags()
+	err := c.parseServerFlags()
+	if err != nil {
+		logger.Log.Panic("Parse flags error ", zap.Error(err))
+	}
 
 	addr := os.Getenv("ADDRESS")
 	if addr != "" {

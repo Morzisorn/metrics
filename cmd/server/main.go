@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/morzisorn/metrics/config"
-	server "github.com/morzisorn/metrics/internal/server/handlers"
+	"github.com/morzisorn/metrics/internal/server/controllers"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
 )
@@ -19,12 +19,23 @@ func createServer() *gin.Engine {
 	mux := gin.Default()
 	mux.Use(
 		logger.LoggerMiddleware(),
-		server.GzipMiddleware(),
+		controllers.GzipMiddleware(),
 	)
 
-	server.RegisterMetricsRoutes(mux)
+	registerMetricsRoutes(mux)
 
 	return mux
+}
+
+func registerMetricsRoutes(mux *gin.Engine) {
+	mux.GET("/", controllers.GetMetrics)
+	mux.POST("/update/:type/:metric/:value", controllers.UpdateMetricParams)
+	mux.POST("/update/", controllers.UpdateMetricBody)
+	mux.POST("/updates/", controllers.UpdateMetrics)
+	mux.GET("/value/:type/:metric", controllers.GetMetricParams)
+	mux.POST("/value/", controllers.GetMetricBody)
+
+	mux.GET("/ping", controllers.PingDB)
 }
 
 func runServer(mux *gin.Engine) error {

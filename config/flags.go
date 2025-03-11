@@ -16,14 +16,12 @@ func (c *Config) parseAgentFlags() {
 	}
 }
 
-func (c *Config) parseServerFlags() {
+func (c *Config) parseServerFlags() error {
 	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
 	pflag.Int64VarP(&c.StoreInterval, "store", "i", 300, "store interval")
 	pflag.StringVarP(&c.FileStoragePath, "file", "f", "storage.json", "file storage path")
 	pflag.BoolVarP(&c.Restore, "restore", "r", true, "restore storage from file")
 	pflag.StringVarP(&c.DBConnStr, "dbstr", "d", "", "db connection string")
 
-	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
-		panic(err)
-	}
+	return pflag.CommandLine.Parse(os.Args[1:])
 }

@@ -207,7 +207,7 @@ func (db *DBStorage) retryQueryRow(ctx context.Context, query string, result int
 			return result, nil
 		}
 
-		if contains(retriableErrors, err.Error()) {
+		if containsRetriableErr(err.Error()) {
 			continue
 		}
 		return nil, err
@@ -226,7 +226,7 @@ func (db *DBStorage) retryQuery(ctx context.Context, query string, args ...inter
 			return rows, nil
 		}
 
-		if contains(retriableErrors, err.Error()) {
+		if containsRetriableErr(err.Error()) {
 			continue
 		}
 		return nil, err
@@ -244,7 +244,7 @@ func (db *DBStorage) retryExec(ctx context.Context, query string, args ...interf
 			return tag, nil
 		}
 
-		if contains(retriableErrors, err.Error()) {
+		if containsRetriableErr(err.Error()) {
 			continue
 		}
 		return pgconn.CommandTag{}, err
@@ -252,8 +252,8 @@ func (db *DBStorage) retryExec(ctx context.Context, query string, args ...interf
 	return pgconn.CommandTag{}, err
 }
 
-func contains(slice []string, item string) bool {
-	for _, i := range slice {
+func containsRetriableErr(item string) bool {
+	for _, i := range retriableErrors {
 		if i == item {
 			return true
 		}

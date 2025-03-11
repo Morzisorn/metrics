@@ -23,13 +23,8 @@ func (f *FileStorage) UpdateCounter(name string, value float64) (float64, error)
 		return 0, err
 	}
 
-	service := config.GetService("server")
-	if service.Config.StoreInterval == 0 {
-		metrics, err := mem.GetMetrics()
-		if err != nil {
-			return 0, err
-		}
-		err = f.Producer.WriteMetrics(metrics)
+	if shouldWriteSync() {
+		err = f.WriteMetrics(&mem.Metrics)
 		if err != nil {
 			return 0, err
 		}
@@ -45,13 +40,8 @@ func (f *FileStorage) UpdateGauge(name string, value float64) error {
 		return err
 	}
 
-	service := config.GetService("server")
-	if service.Config.StoreInterval == 0 {
-		metrics, err := mem.GetMetrics()
-		if err != nil {
-			return err
-		}
-		err = f.Producer.WriteMetrics(metrics)
+	if shouldWriteSync() {
+		err = f.WriteMetrics(&mem.Metrics)
 		if err != nil {
 			return err
 		}
@@ -70,10 +60,8 @@ func (f *FileStorage) UpdateCounters(metrics *map[string]float64) error {
 		return err
 	}
 
-	service := config.GetService("server")
-	if service.Config.StoreInterval == 0 {
-		err = f.Producer.WriteMetrics(&mem.Metrics)
-		if err != nil {
+	if shouldWriteSync() {
+		if err = f.WriteMetrics(&mem.Metrics); err != nil {
 			return err
 		}
 	}
@@ -88,13 +76,16 @@ func (f *FileStorage) UpdateGauges(metrics *map[string]float64) error {
 		return err
 	}
 
-	service := config.GetService("server")
-	if service.Config.StoreInterval == 0 {
-		err = f.Producer.WriteMetrics(&mem.Metrics)
-		if err != nil {
+	if shouldWriteSync() {
+		if err = f.WriteMetrics(&mem.Metrics); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func shouldWriteSync() bool {
+	service := config.GetService("server")
+	return service.Config.StoreInterval == 0
 }

@@ -74,15 +74,6 @@ func NewFileStorageConsumer(filepath string) (*FileStorageConsumer, error) {
 }
 
 func NewFileStorage(filename string) (*FileStorage, error) {
-	/*
-		basePath, err := config.GetProjectRoot()
-		if err != nil {
-			logger.Log.Error("Error getting project root ", zap.Error(err))
-			return nil, err
-		}
-		filepath := filepath.Join(basePath, "internal", "server", "storage", "file", filename)
-	*/
-
 	producer, err := NewFileStorageProducer(filename)
 	if err != nil {
 		return nil, err
