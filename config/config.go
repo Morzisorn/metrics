@@ -7,18 +7,24 @@ import (
 	"sync"
 
 	"github.com/morzisorn/metrics/internal/server/logger"
-	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 )
 
 type Config struct {
-	Addr           string
+	//Common
+	AppType     string
+	Addr        string
+	StorageType string
+
+	//Agent
 	PollInterval   float64
 	ReportInterval float64
 
+	//Server
 	StoreInterval   int64
 	FileStoragePath string
 	Restore         bool
+	DBConnStr       string
 }
 
 type Service struct {
@@ -55,12 +61,23 @@ func New(app string) (*Service, error) {
 		}, fmt.Errorf("error parsing env: %v", err)
 	}
 
+	c.AppType = app
+
+	switch {
+	case c.DBConnStr != "":
+		c.StorageType = "db"
+	case c.FileStoragePath != "":
+		c.StorageType = "file"
+	default:
+		c.StorageType = "memory"
+	}
+
 	return &Service{
 		Config: *c,
 	}, nil
 }
 
-func getProjectRoot() (string, error) {
+func GetProjectRoot() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -80,31 +97,10 @@ func getProjectRoot() (string, error) {
 }
 
 func getEncFilePath() string {
-	basePath, err := getProjectRoot()
+	basePath, err := GetProjectRoot()
 	if err != nil {
 		logger.Log.Error("Error getting project root ", zap.Error(err))
 		return ".env"
 	}
 	return filepath.Join(basePath, "config", ".env")
-}
-
-func (c *Config) parseAgentFlags() {
-	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
-	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "poll interval")
-	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "report interval")
-
-	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
-		panic(err)
-	}
-}
-
-func (c *Config) parseServerFlags() {
-	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
-	pflag.Int64VarP(&c.StoreInterval, "store", "i", 300, "store interval")
-	pflag.StringVarP(&c.FileStoragePath, "file", "f", "storage.json", "file storage path")
-	pflag.BoolVarP(&c.Restore, "restore", "r", true, "restore storage from file")
-
-	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
-		panic(err)
-	}
 }
