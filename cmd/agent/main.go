@@ -47,10 +47,7 @@ func RunAgent() error {
 
 func main() {
 	var err error
-	Service, err = config.New("agent")
-	if err != nil {
-		panic(err)
-	}
+	Service = config.GetService("agent")
 	err = RunAgent()
 	if err != nil {
 		fmt.Println(err)

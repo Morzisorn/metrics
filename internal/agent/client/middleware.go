@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -51,14 +52,20 @@ func retryHook(resp *resty.Response, err error) {
 }
 
 func signRequestMiddleware(r *resty.Request) error {
+	service := config.GetService("agent")
+	if service.Config.Key == "" {
+		return nil
+	}
+
 	body, err := getByteBody(r)
 	if err != nil {
 		return err
 	}
 
 	hash := getHash(body)
-	
-	r.SetHeader("HashSHA256", string(hash[:]))
+	hashHex := hex.EncodeToString(hash[:])
+
+	r.SetHeader("HashSHA256", hashHex)
 
 	return nil
 }
