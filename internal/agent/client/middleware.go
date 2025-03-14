@@ -3,39 +3,26 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
 	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
 	"resty.dev/v3"
 )
 
 func gzipMiddleware(r *resty.Request) error {
-	body := r.Body
-	if body == nil {
-		return nil
-	}
-
-	var jsonBody []byte
-	var err error
-
-	switch b := body.(type) {
-	case []byte:
-		jsonBody = b
-	case string:
-		jsonBody = []byte(b)
-	default:
-		jsonBody, err = json.Marshal(body)
-		if err != nil {
-			return err
-		}
+	body, err := getByteBody(r)
+	if err != nil {
+		return err
 	}
 
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
-	_, err = gz.Write(jsonBody)
+	_, err = gz.Write(body)
 	if err != nil {
 		return err
 	}
@@ -61,4 +48,46 @@ func retryHook(resp *resty.Response, err error) {
 		logger.Log.Info("Request to server error", zap.Int("Retry #", attempt))
 		time.Sleep(delay)
 	}
+}
+
+func signRequestMiddleware(r *resty.Request) error {
+	body, err := getByteBody(r)
+	if err != nil {
+		return err
+	}
+
+	hash := getHash(body)
+	
+	r.SetHeader("HashSHA256", string(hash[:]))
+
+	return nil
+}
+
+func getByteBody(r *resty.Request) ([]byte, error) {
+	body := r.Body
+	if body == nil {
+		return []byte{}, nil
+	}
+
+	var jsonBody []byte
+	var err error
+
+	switch b := body.(type) {
+	case []byte:
+		jsonBody = b
+	case string:
+		jsonBody = []byte(b)
+	default:
+		jsonBody, err = json.Marshal(body)
+		if err != nil {
+			return []byte{}, err
+		}
+	}
+	return jsonBody, nil
+}
+
+func getHash(body []byte) [32]byte {
+	service := config.GetService("agent")
+	str := append(body, []byte(service.Config.Key)...)
+	return sha256.Sum256(str)
 }
