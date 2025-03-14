@@ -171,7 +171,7 @@ func SignMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		body = []byte(rw.buffer.String())
+		body = rw.buffer.Bytes()
 
 		hash := getHash(body)
 		hashHex := hex.EncodeToString(hash[:])
@@ -185,8 +185,6 @@ func SignMiddleware() gin.HandlerFunc {
 		if err != nil {
 			logger.Log.Error("Error writing response", zap.Error(err))
 		}
-		return
-
 	}
 }
 
