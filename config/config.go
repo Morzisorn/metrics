@@ -12,9 +12,9 @@ import (
 
 type Config struct {
 	//Common
-	AppType     string
-	Addr        string
-	StorageType string
+	AppType string
+	Addr    string
+	Key     string
 
 	//Agent
 	PollInterval   float64
@@ -25,6 +25,7 @@ type Config struct {
 	FileStoragePath string
 	Restore         bool
 	DBConnStr       string
+	StorageType     string
 }
 
 type Service struct {

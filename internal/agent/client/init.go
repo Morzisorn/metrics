@@ -26,7 +26,12 @@ func NewClient(s *config.Service) *HTTPClient {
 		AddRetryHooks(retryHook)
 
 	c.Client.AddRequestMiddleware(func(client *resty.Client, req *resty.Request) error {
-		err := gzipMiddleware(req)
+		err := signRequestMiddleware(req)
+		if err != nil {
+			return err
+		}
+
+		err = gzipMiddleware(req)
 		if err != nil {
 			return err
 		}

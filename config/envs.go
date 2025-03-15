@@ -42,6 +42,11 @@ func (c *Config) parseAgentEnvs() {
 	if err == nil && f != 0 {
 		c.ReportInterval = f
 	}
+
+	k, err := getEnvString("KEY")
+	if err == nil {
+		c.Key = k
+	}
 }
 
 func (c *Config) parseServerEnvs() {
@@ -73,6 +78,11 @@ func (c *Config) parseServerEnvs() {
 	d, err := getEnvString("DATABASE_DSN")
 	if err == nil {
 		c.DBConnStr = d
+	}
+
+	k, err := getEnvString("KEY")
+	if err == nil {
+		c.Key = k
 	}
 }
 
