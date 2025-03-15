@@ -32,7 +32,7 @@ func PingDB(db *DBStorage) error {
 }
 
 func (db *DBStorage) UpdateGauge(name string, value float64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second) //CHANGE TO 3
 	defer cancel()
 
 	db.mu.Lock()
@@ -200,7 +200,8 @@ func (db *DBStorage) Close() {
 func (db *DBStorage) retryQueryRow(ctx context.Context, query string, result interface{}, args ...interface{}) (interface{}, error) {
 	var err error
 	for i := 0; i < len(retryDelays); i++ {
-		err = db.Pool.QueryRow(ctx, query, args...).Scan(&result)
+		row := db.Pool.QueryRow(ctx, query, args...)
+		err := row.Scan(result)
 
 		if err == nil {
 			return result, nil

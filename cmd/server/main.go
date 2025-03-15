@@ -27,7 +27,7 @@ func createServer(
 	mux.Use(
 		logger.LoggerMiddleware(),
 		controllers.GzipMiddleware(),
-		controllers.SignMiddleware(),
+		//controllers.SignMiddleware(),
 	)
 
 	registerMetricsRoutes(mux, mc)
