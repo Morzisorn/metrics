@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/morzisorn/metrics/internal/server/logger"
+	"go.uber.org/zap"
 )
 
 var (
@@ -201,11 +203,12 @@ func (db *DBStorage) retryQueryRow(ctx context.Context, query string, result int
 	var err error
 	for i := 0; i < len(retryDelays); i++ {
 		row := db.Pool.QueryRow(ctx, query, args...)
-		err := row.Scan(result)
+		err := row.Scan(&result)
 
 		if err == nil {
 			return result, nil
 		}
+		logger.Log.Error("db query error: ", zap.Error(err))
 
 		if containsRetriableErr(err.Error()) {
 			continue
