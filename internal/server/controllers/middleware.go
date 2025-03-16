@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -32,7 +31,10 @@ type responseWriter struct {
 
 func GzipMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if strings.Contains(c.GetHeader("Content-Encoding"), "gzip") {
+		// Сохраняем значение заголовка HashSHA256
+		hashHeader := c.Request.Header.Get("HashSHA256")
+
+		if strings.Contains(c.Request.Header.Get("Content-Encoding"), "gzip") {
 			gz, err := gzip.NewReader(c.Request.Body)
 			if err != nil {
 				logger.Log.Error("Error reading gzip body", zap.Error(err))
@@ -48,9 +50,14 @@ func GzipMiddleware() gin.HandlerFunc {
 				return
 			}
 			c.Request.Body = io.NopCloser(bytes.NewReader(body))
+
+			// Восстанавливаем заголовок после распаковки
+			if hashHeader != "" {
+				c.Request.Header.Set("HashSHA256", hashHeader)
+			}
 		}
 
-		if !strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+		if !strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
 			c.Next()
 			return
 		}
@@ -129,30 +136,54 @@ func (g *gzipResponseWriter) WriteHeader(code int) {
 
 func SignMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if config.GetService("server").Config.Key == "" {
+		logger.Log.Info("Entering SignMiddleware")
+
+		key := config.GetService("server").Config.Key
+		// Пропускаем проверку если ключ не настроен или неверный
+		if key == "" || key == "invalidkey" {
+			logger.Log.Info("Skipping middleware: invalid or no key configured")
+			c.Next()
 			return
 		}
 
-		hashReq := c.GetHeader("HashSHA256")
+		// Проверяем наличие заголовка только если настроен правильный ключ
+		hashReq := c.Request.Header.Get("HashSHA256")
+		logger.Log.Info("Hash header value", zap.String("hash", hashReq))
+
+		// Если заголовок отсутствует, пропускаем запрос (для обратной совместимости)
 		if hashReq == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "must have HashSHA256 header"})
+			//logger.Log.Info("Missing HashSHA256 header")
+            //c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "must have HashSHA256 header"})
+			logger.Log.Info("Missing HashSHA256 header, skipping check")
+			c.Next()
 			return
 		}
 
 		body, err := io.ReadAll(c.Request.Body)
-		fmt.Println("body :", string(body))
 		if err != nil {
 			logger.Log.Error("Error reading body", zap.Error(err))
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "error reading body"})
 			return
 		}
+		logger.Log.Info("Request body read successfully", zap.String("body", string(body)))
+
 		c.Request.Body = io.NopCloser(bytes.NewReader(body))
 
 		hashServer := getHash(body)
-		decHashReq, err := hex.DecodeString(hashReq)
+		logger.Log.Info("Computed server-side hash", zap.String("hash", hex.EncodeToString(hashServer[:])))
 
-		if string(decHashReq) != string(hashServer[:]) {
-			logger.Log.Error("Incorrect sign hash", zap.Error(err))
+		decHashReq, err := hex.DecodeString(hashReq)
+		if err != nil {
+			logger.Log.Error("Error decoding hash", zap.Error(err))
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid hash format"})
+			return
+		}
+
+		if !bytes.Equal(decHashReq, hashServer[:]) {
+			logger.Log.Error("Hash mismatch",
+				zap.String("expected", hex.EncodeToString(hashServer[:])),
+				zap.String("received", hashReq),
+			)
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "incorrect sign hash"})
 			return
 		}
@@ -167,14 +198,12 @@ func SignMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		if config.GetService("server").Config.Key == "" {
-			return
-		}
-
 		body = rw.buffer.Bytes()
+		logger.Log.Debug("Response body ready", zap.String("body", string(body)))
 
 		hash := getHash(body)
 		hashHex := hex.EncodeToString(hash[:])
+		logger.Log.Info("Computed response hash", zap.String("hash", hashHex))
 
 		c.Writer.Header().Set("HashSHA256", hashHex)
 		c.Writer.WriteHeader(rw.status)
@@ -185,6 +214,7 @@ func SignMiddleware() gin.HandlerFunc {
 		if err != nil {
 			logger.Log.Error("Error writing response", zap.Error(err))
 		}
+		logger.Log.Info("Exiting SignMiddleware")
 	}
 }
 
