@@ -10,6 +10,8 @@ import (
 
 	"github.com/morzisorn/metrics/internal/models"
 	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 	"go.uber.org/zap"
 )
 
@@ -70,10 +72,7 @@ func (m *Metrics) PollMetrics() error {
 
 	generator := pollGenerator(RuntimeGauges)
 
-	err := m.produceMetrics(generator, &val)
-	if err != nil {
-		return err
-	}
+	m.produceMetrics(generator, &val)
 
 	return nil
 }
@@ -92,7 +91,7 @@ func pollGenerator(gauges []string) chan string {
 	return chIn
 }
 
-func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) error {
+func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
 	var wg sync.WaitGroup
 
 	for s := range chIn {
@@ -101,7 +100,6 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) error {
 			metric, err := GetMetric(refl, name)
 			if err != nil {
 				logger.Log.Error("Get metric error: ", zap.Error(err))
-
 			}
 			m.Mu.Lock()
 			m.Metrics[name] = metric
@@ -134,9 +132,55 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) error {
 	}()
 	wg.Done()
 
-	wg.Wait()
+	wg.Add(1)
+	go m.collectMemCPU()
+	wg.Done()
 
-	return nil
+	wg.Wait()
+}
+
+func (m *Metrics) collectMemCPU() {
+	percent, err := cpu.Percent(0, false)
+	if err != nil {
+		logger.Log.Error("Get CPUutilization1 error: ", zap.Error(err))
+	}
+
+	cpuUtilization1 := Metric{
+		Metric: models.Metric{
+			ID:    "CPUutilization1",
+			MType: "gauge",
+			Value: &percent[0],
+		},
+	}
+
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		logger.Log.Error("Get memory error: ", zap.Error(err))
+	}
+
+	total := float64(memory.Total)
+	totalMemory := Metric{
+		Metric: models.Metric{
+			ID:    "TotalMemory",
+			MType: "gauge",
+			Value: &total,
+		},
+	}
+
+	free := float64(memory.Free)
+	freeMemory := Metric{
+		Metric: models.Metric{
+			ID:    "FreeMemory",
+			MType: "gauge",
+			Value: &free,
+		},
+	}
+
+	m.Mu.Lock()
+	m.Metrics["CPUutilization1"] = cpuUtilization1
+	m.Metrics["TotalMemory"] = totalMemory
+	m.Metrics["FreeMemory"] = freeMemory
+	m.Mu.Unlock()
 }
 
 func GetMetric(memStats *reflect.Value, gauge string) (Metric, error) {
