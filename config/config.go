@@ -19,6 +19,7 @@ type Config struct {
 	//Agent
 	PollInterval   float64
 	ReportInterval float64
+	RateLimit      int64
 
 	//Server
 	StoreInterval   int64

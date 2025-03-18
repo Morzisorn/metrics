@@ -47,6 +47,11 @@ func (c *Config) parseAgentEnvs() {
 	if err == nil {
 		c.Key = k
 	}
+
+	l, err := getEnvInt("RATE_LIMIT")
+	if err == nil {
+		c.RateLimit = l
+	}
 }
 
 func (c *Config) parseServerEnvs() {

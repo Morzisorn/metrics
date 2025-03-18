@@ -11,6 +11,7 @@ func (c *Config) parseAgentFlags() {
 	pflag.StringVarP(&c.Key, "key", "k", "", "secret key")
 	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "poll interval")
 	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "report interval")
+	pflag.Int64VarP(&c.RateLimit, "rate_limit", "l", 3, "rate limit")
 
 	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
 		panic(err)
