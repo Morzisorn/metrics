@@ -110,8 +110,10 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) error {
 		wg.Done()
 	}
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
+		var counter int64 = 1
+
 		m.Mu.Lock()
 		m.Metrics[RandomValueMetric] = Metric{
 			Metric: models.Metric{
@@ -120,12 +122,7 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) error {
 				Value: GetRandomValue(),
 			},
 		}
-		m.Mu.Unlock()
-		wg.Done()
 
-		wg.Add(1)
-		var counter int64 = 1
-		m.Mu.Lock()
 		m.Metrics[CounterMetric] = Metric{
 			Metric: models.Metric{
 				ID:    CounterMetric,
@@ -134,8 +131,8 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) error {
 			},
 		}
 		m.Mu.Unlock()
-		wg.Done()
 	}()
+	wg.Done()
 
 	wg.Wait()
 
