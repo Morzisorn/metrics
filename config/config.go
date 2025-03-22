@@ -11,17 +11,24 @@ import (
 )
 
 type Config struct {
-	//Common
+	CommonConfig
+	AgentConfig
+	ServerConfig
+}
+
+type CommonConfig struct {
 	AppType string
 	Addr    string
 	Key     string
+}
 
-	//Agent
+type AgentConfig struct {
 	PollInterval   float64
 	ReportInterval float64
 	RateLimit      int64
+}
 
-	//Server
+type ServerConfig struct {
 	StoreInterval   int64
 	FileStoragePath string
 	Restore         bool
@@ -38,10 +45,13 @@ var (
 	once     sync.Once
 )
 
-func GetService(app string) *Service {
+func GetService(app ...string) *Service {
 	once.Do(func() {
+		if len(app) == 0 {
+			logger.Log.Panic("Must have app type for creating new")
+		}
 		var err error
-		instance, err = New(app)
+		instance, err = New(app[0])
 		if err != nil {
 			logger.Log.Error("Error getting service", zap.Error(err))
 		}

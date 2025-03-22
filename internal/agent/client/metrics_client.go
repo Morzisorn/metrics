@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/morzisorn/metrics/config"
 	agent "github.com/morzisorn/metrics/internal/agent/services"
@@ -37,7 +38,8 @@ func (c *HTTPClient) SendMetric(m *agent.Metric) error {
 	return nil
 }
 
-func (c *HTTPClient) sender(chIn chan agent.Metric) {
+func (c *HTTPClient) metricSenderJob(chIn chan agent.Metric, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for metric := range chIn {
 		err := c.SendMetric(&metric)
 		if err != nil {
@@ -54,25 +56,25 @@ func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 	chIn := make(chan agent.Metric, len(m.Metrics))
 	defer close(chIn)
 
-	rateLimit := config.GetService("agent").Config.RateLimit
+	var wg sync.WaitGroup
 
-	for w := 0; w < int(rateLimit); w++ {
-		go c.sender(chIn)
-	}
+	rateLimit := config.GetService().Config.RateLimit
+	c.runWorkers(chIn, &wg, int(rateLimit))
 
-	m.Mu.RLock()
-	for _, metric := range m.Metrics {
-		chIn <- metric
-	}
-	m.Mu.RUnlock()
+	m.LoadMetricsToChan(chIn)
 
-	m.Mu.Lock()
-	if m.Metrics[agent.CounterMetric].Delta != nil {
-		*m.Metrics[agent.CounterMetric].Delta = 0
-	}
-	m.Mu.Unlock()
+	wg.Wait()
+
+	m.ResetCounter()
 
 	return nil
+}
+
+func (c *HTTPClient) runWorkers(chIn chan agent.Metric, wg *sync.WaitGroup, rateLimit int) {
+	for w := 0; w < rateLimit; w++ {
+		wg.Add(1)
+		go c.metricSenderJob(chIn, wg)
+	}
 }
 
 func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
@@ -103,11 +105,7 @@ func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
 		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
 	}
 
-	m.Mu.Lock()
-	if m.Metrics[agent.CounterMetric].Delta != nil {
-		*m.Metrics[agent.CounterMetric].Delta = 0
-	}
-	m.Mu.Unlock()
+	m.ResetCounter()
 
 	return nil
 }

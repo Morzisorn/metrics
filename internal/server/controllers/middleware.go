@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/config"
+	"github.com/morzisorn/metrics/internal/hash"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
 )
@@ -128,7 +128,7 @@ func (g *gzipResponseWriter) WriteHeader(code int) {
 
 func SignMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if config.GetService("server").Config.Key == "" {
+		if config.GetService().Config.Key == "" {
 			logger.Log.Info("Skipping middleware: no key configured")
 			c.Next()
 			return
@@ -150,7 +150,7 @@ func SignMiddleware() gin.HandlerFunc {
 		}
 		c.Request.Body = io.NopCloser(bytes.NewReader(body))
 
-		hashServer := getHash(body)
+		hashServer := hash.GetHash(body)
 		decHashReq, err := hex.DecodeString(hashReq)
 		if err != nil {
 			logger.Log.Error("Error decoding hash", zap.Error(err))
@@ -176,7 +176,7 @@ func SignMiddleware() gin.HandlerFunc {
 		c.Writer = rw
 		c.Next()
 
-		hash := getHash(rw.buffer.Bytes())
+		hash := hash.GetHash(rw.buffer.Bytes())
 		c.Writer.Header().Set("HashSHA256", hex.EncodeToString(hash[:]))
 		c.Writer.WriteHeader(rw.status)
 
@@ -185,12 +185,6 @@ func SignMiddleware() gin.HandlerFunc {
 			logger.Log.Error("Error writing response", zap.Error(err))
 		}
 	}
-}
-
-func getHash(body []byte) [32]byte {
-	service := config.GetService("server")
-	str := append(body, []byte(service.Config.Key)...)
-	return sha256.Sum256(str)
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {

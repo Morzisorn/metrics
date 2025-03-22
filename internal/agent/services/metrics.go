@@ -97,6 +97,7 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
 	for s := range chIn {
 		wg.Add(1)
 		go func(name string) {
+			defer wg.Done()
 			metric, err := GetMetric(refl, name)
 			if err != nil {
 				logger.Log.Error("Get metric error: ", zap.Error(err))
@@ -105,11 +106,11 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
 			m.Metrics[name] = metric
 			m.Mu.Unlock()
 		}(s)
-		wg.Done()
 	}
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		var counter int64 = 1
 
 		m.Mu.Lock()
@@ -130,16 +131,16 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
 		}
 		m.Mu.Unlock()
 	}()
-	wg.Done()
 
 	wg.Add(1)
-	go m.collectMemCPU()
-	wg.Done()
+	go m.collectMemCPU(&wg)
 
 	wg.Wait()
 }
 
-func (m *Metrics) collectMemCPU() {
+func (m *Metrics) collectMemCPU(wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	percent, err := cpu.Percent(0, false)
 	if err != nil {
 		logger.Log.Error("Get CPUutilization1 error: ", zap.Error(err))
@@ -215,4 +216,20 @@ var rng = rand.New(rand.NewSource(time.Now().UnixNano())) // Создаём ге
 func GetRandomValue() *float64 {
 	v := rng.Float64()
 	return &v
+}
+
+func (m *Metrics) ResetCounter() {
+	m.Mu.Lock()
+	if m.Metrics[CounterMetric].Delta != nil {
+		*m.Metrics[CounterMetric].Delta = 0
+	}
+	m.Mu.Unlock()
+}
+
+func (m *Metrics) LoadMetricsToChan(ch chan Metric) {
+	m.Mu.RLock()
+	for _, metric := range m.Metrics {
+		ch <- metric
+	}
+	m.Mu.RUnlock()
 }

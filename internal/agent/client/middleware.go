@@ -3,13 +3,13 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/morzisorn/metrics/config"
+	"github.com/morzisorn/metrics/internal/hash"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
 	"resty.dev/v3"
@@ -52,7 +52,7 @@ func retryHook(resp *resty.Response, err error) {
 }
 
 func signRequestMiddleware(r *resty.Request) error {
-	service := config.GetService("agent")
+	service := config.GetService()
 	if service.Config.Key == "" {
 		return nil
 	}
@@ -62,7 +62,7 @@ func signRequestMiddleware(r *resty.Request) error {
 		return err
 	}
 
-	hash := getHash(body)
+	hash := hash.GetHash(body)
 	hashHex := hex.EncodeToString(hash[:])
 
 	r.SetHeader("HashSHA256", hashHex)
@@ -91,10 +91,4 @@ func getByteBody(r *resty.Request) ([]byte, error) {
 		}
 	}
 	return jsonBody, nil
-}
-
-func getHash(body []byte) [32]byte {
-	service := config.GetService("agent")
-	str := append(body, []byte(service.Config.Key)...)
-	return sha256.Sum256(str)
 }
