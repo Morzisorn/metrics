@@ -5,9 +5,14 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/morzisorn/metrics/internal/models"
+	"github.com/morzisorn/metrics/internal/server/logger"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
+	"go.uber.org/zap"
 )
 
 var RuntimeGauges = []string{
@@ -46,6 +51,7 @@ type MetricsCollector interface {
 
 type Metrics struct {
 	Metrics map[string]Metric
+	Mu      sync.RWMutex
 }
 
 type Metric struct {
@@ -60,38 +66,125 @@ const (
 func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
+
 	m.Metrics = make(map[string]Metric)
 	val := reflect.ValueOf(memStats)
-	for _, gauge := range RuntimeGauges {
-		metr, err := GetMetric(val, gauge)
-		if err != nil {
-			return err
-		}
-		m.Metrics[gauge] = metr
-	}
 
-	m.Metrics[RandomValueMetric] = Metric{
-		Metric: models.Metric{
-			ID:    RandomValueMetric,
-			MType: "gauge",
-			Value: GetRandomValue(),
-		},
-	}
+	generator := pollGenerator(RuntimeGauges)
 
-	var counter int64 = 1
-
-	m.Metrics[CounterMetric] = Metric{
-		Metric: models.Metric{
-			ID:    CounterMetric,
-			MType: "counter",
-			Delta: &counter,
-		},
-	}
+	m.produceMetrics(generator, &val)
 
 	return nil
 }
 
-func GetMetric(memStats reflect.Value, gauge string) (Metric, error) {
+func pollGenerator(gauges []string) chan string {
+	chIn := make(chan string)
+
+	go func() {
+		defer close(chIn)
+
+		for _, g := range gauges {
+			chIn <- g
+		}
+	}()
+
+	return chIn
+}
+
+func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
+	var wg sync.WaitGroup
+
+	for s := range chIn {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			metric, err := GetMetric(refl, name)
+			if err != nil {
+				logger.Log.Error("Get metric error: ", zap.Error(err))
+			}
+			m.Mu.Lock()
+			m.Metrics[name] = metric
+			m.Mu.Unlock()
+		}(s)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var counter int64 = 1
+
+		m.Mu.Lock()
+		m.Metrics[RandomValueMetric] = Metric{
+			Metric: models.Metric{
+				ID:    RandomValueMetric,
+				MType: "gauge",
+				Value: GetRandomValue(),
+			},
+		}
+
+		m.Metrics[CounterMetric] = Metric{
+			Metric: models.Metric{
+				ID:    CounterMetric,
+				MType: "counter",
+				Delta: &counter,
+			},
+		}
+		m.Mu.Unlock()
+	}()
+
+	wg.Add(1)
+	go m.collectMemCPU(&wg)
+
+	wg.Wait()
+}
+
+func (m *Metrics) collectMemCPU(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	percent, err := cpu.Percent(0, false)
+	if err != nil {
+		logger.Log.Error("Get CPUutilization1 error: ", zap.Error(err))
+	}
+
+	cpuUtilization1 := Metric{
+		Metric: models.Metric{
+			ID:    "CPUutilization1",
+			MType: "gauge",
+			Value: &percent[0],
+		},
+	}
+
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		logger.Log.Error("Get memory error: ", zap.Error(err))
+	}
+
+	total := float64(memory.Total)
+	totalMemory := Metric{
+		Metric: models.Metric{
+			ID:    "TotalMemory",
+			MType: "gauge",
+			Value: &total,
+		},
+	}
+
+	free := float64(memory.Free)
+	freeMemory := Metric{
+		Metric: models.Metric{
+			ID:    "FreeMemory",
+			MType: "gauge",
+			Value: &free,
+		},
+	}
+
+	m.Mu.Lock()
+	m.Metrics["CPUutilization1"] = cpuUtilization1
+	m.Metrics["TotalMemory"] = totalMemory
+	m.Metrics["FreeMemory"] = freeMemory
+	m.Mu.Unlock()
+}
+
+func GetMetric(memStats *reflect.Value, gauge string) (Metric, error) {
 	field := memStats.FieldByName(gauge)
 
 	if field.IsValid() {
@@ -123,4 +216,20 @@ var rng = rand.New(rand.NewSource(time.Now().UnixNano())) // Создаём ге
 func GetRandomValue() *float64 {
 	v := rng.Float64()
 	return &v
+}
+
+func (m *Metrics) ResetCounter() {
+	m.Mu.Lock()
+	if m.Metrics[CounterMetric].Delta != nil {
+		*m.Metrics[CounterMetric].Delta = 0
+	}
+	m.Mu.Unlock()
+}
+
+func (m *Metrics) LoadMetricsToChan(ch chan Metric) {
+	m.Mu.RLock()
+	for _, metric := range m.Metrics {
+		ch <- metric
+	}
+	m.Mu.RUnlock()
 }

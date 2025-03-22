@@ -7,6 +7,8 @@ import (
 	"github.com/morzisorn/metrics/config"
 	client "github.com/morzisorn/metrics/internal/agent/client"
 	agent "github.com/morzisorn/metrics/internal/agent/services"
+	"github.com/morzisorn/metrics/internal/server/logger"
+	"go.uber.org/zap"
 )
 
 var Service *config.Service
@@ -16,7 +18,7 @@ func RunAgent() error {
 	lastReport := time.Now()
 	m := agent.Metrics{}
 	c := client.NewClient(Service)
-	fmt.Println("Running agent on", Service.Config.Addr)
+	logger.Log.Info("Running agent.", zap.String("Address: ", Service.Config.Addr))
 	for {
 		if time.Since(now).Seconds() >= Service.Config.PollInterval {
 			now = time.Now()
@@ -24,6 +26,7 @@ func RunAgent() error {
 			if err != nil {
 				return err
 			}
+			
 			if time.Since(lastReport).Seconds() >= Service.Config.ReportInterval {
 				if len(m.Metrics) > 0 {
 					lastReport = time.Now()
@@ -38,7 +41,6 @@ func RunAgent() error {
 					if err != nil {
 						return err
 					}
-
 				}
 			}
 		}
@@ -47,10 +49,7 @@ func RunAgent() error {
 
 func main() {
 	var err error
-	Service, err = config.New("agent")
-	if err != nil {
-		panic(err)
-	}
+	Service = config.GetService("agent")
 	err = RunAgent()
 	if err != nil {
 		fmt.Println(err)
