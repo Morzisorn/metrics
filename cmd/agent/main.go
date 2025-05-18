@@ -9,6 +9,7 @@ import (
 	agent "github.com/morzisorn/metrics/internal/agent/services"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
+	_ "net/http/pprof"
 )
 
 var Service *config.Service

@@ -94,6 +94,46 @@ func pollGenerator(gauges []string) chan string {
 func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
 	var wg sync.WaitGroup
 
+	m.produceRuntimeGauges(chIn, refl, &wg)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var counter int64 = 1
+
+		m.Mu.Lock()
+		m.setRandom()
+		m.setCounter(&counter)
+		m.Mu.Unlock()
+	}()
+
+	wg.Add(1)
+	go m.collectMemCPU(&wg)
+
+	wg.Wait()
+}
+
+func (m *Metrics) setRandom() {
+	m.Metrics[RandomValueMetric] = Metric{
+		Metric: models.Metric{
+			ID:    RandomValueMetric,
+			MType: "gauge",
+			Value: GetRandomValue(),
+		},
+	}
+}
+
+func (m *Metrics) setCounter(counter *int64) {
+	m.Metrics[CounterMetric] = Metric{
+		Metric: models.Metric{
+			ID:    CounterMetric,
+			MType: "counter",
+			Delta: counter,
+		},
+	}
+}
+
+func (m *Metrics) produceRuntimeGauges(chIn chan string, refl *reflect.Value, wg *sync.WaitGroup) {
 	for s := range chIn {
 		wg.Add(1)
 		go func(name string) {
@@ -107,35 +147,6 @@ func (m *Metrics) produceMetrics(chIn chan string, refl *reflect.Value) {
 			m.Mu.Unlock()
 		}(s)
 	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var counter int64 = 1
-
-		m.Mu.Lock()
-		m.Metrics[RandomValueMetric] = Metric{
-			Metric: models.Metric{
-				ID:    RandomValueMetric,
-				MType: "gauge",
-				Value: GetRandomValue(),
-			},
-		}
-
-		m.Metrics[CounterMetric] = Metric{
-			Metric: models.Metric{
-				ID:    CounterMetric,
-				MType: "counter",
-				Delta: &counter,
-			},
-		}
-		m.Mu.Unlock()
-	}()
-
-	wg.Add(1)
-	go m.collectMemCPU(&wg)
-
-	wg.Wait()
 }
 
 func (m *Metrics) collectMemCPU(wg *sync.WaitGroup) {
