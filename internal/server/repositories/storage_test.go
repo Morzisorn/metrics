@@ -39,5 +39,5 @@ func TestNewStorageUnknown(t *testing.T) {
 
 	cfg.Config.StorageType = "unknown"
 
-	require.Panics(t, func() {NewStorage(cfg.Config)}) 
+	require.Panics(t, func() { NewStorage(cfg.Config) })
 }

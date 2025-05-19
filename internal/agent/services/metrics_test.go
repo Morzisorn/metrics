@@ -20,7 +20,7 @@ func BenchmarkPollAllMetrics(b *testing.B) {
 	tries := 10000
 	m := Metrics{}
 
-	for i:= 0; i<tries; i++ {
+	for i := 0; i < tries; i++ {
 		err := m.PollMetrics()
 		if err != nil {
 			b.Fatal("")
@@ -105,7 +105,7 @@ func TestCollectMemCPU(t *testing.T) {
 
 	wg.Add(1)
 	m.collectMemCPU(&wg)
-	
+
 	wg.Wait()
 	assert.NotNil(t, m.Metrics["CPUutilization1"].Value)
 	assert.NotNil(t, m.Metrics["TotalMemory"].MType)
@@ -128,7 +128,7 @@ func TestSetCounter(t *testing.T) {
 }
 
 func newEmptyMetrics() Metrics {
-	return  Metrics{
+	return Metrics{
 		Metrics: map[string]Metric{},
 	}
 }

@@ -4,6 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	_ "net/http/pprof"
+
+	"github.com/gin-contrib/pprof"
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/controllers"
 	"github.com/morzisorn/metrics/internal/server/logger"
@@ -33,6 +36,8 @@ func createServer(
 	registerMetricsRoutes(mux, mc)
 	registerPagesRoutes(mux, pc)
 	registerHealthRoutes(mux, hc)
+
+	pprof.Register(mux)
 
 	return mux
 }

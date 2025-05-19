@@ -176,7 +176,6 @@ func TestLoadMetricsFromFile(t *testing.T) {
 	require.NoError(t, err)
 	service1 := NewMetricService(storage1)
 
-
 	v1 := 75.400
 	v2 := 4.3
 

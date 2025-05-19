@@ -15,5 +15,5 @@ func TestGetHash(t *testing.T) {
 	str := append(body, []byte(service.Config.Key)...)
 	expected := sha256.Sum256(str)
 
-	assert.Equal(t,expected, GetHash(body))
+	assert.Equal(t, expected, GetHash(body))
 }

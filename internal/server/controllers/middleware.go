@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"compress/gzip"
 
@@ -27,6 +28,12 @@ type responseWriter struct {
 	gin.ResponseWriter
 	buffer *bytes.Buffer
 	status int
+}
+
+var gzipWriterPool = sync.Pool{
+	New: func() any {
+		return gzip.NewWriter(io.Discard)
+	},
 }
 
 func GzipMiddleware() gin.HandlerFunc {
@@ -55,7 +62,8 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 
 		buf := new(bytes.Buffer)
-		gz := gzip.NewWriter(buf)
+		gz := gzipWriterPool.Get().(*gzip.Writer)
+		gz.Reset(buf)
 
 		gzw := &gzipResponseWriter{
 			ResponseWriter: c.Writer,
@@ -67,7 +75,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		c.Writer = gzw
 		c.Next()
 
-		gzw.Close()
+		//gzw.Close()
 
 		contentType := c.Writer.Header().Get("Content-Type")
 
@@ -118,6 +126,7 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 func (g *gzipResponseWriter) Close() {
 	if gz, ok := g.writer.(*gzip.Writer); ok {
 		gz.Close()
+		gzipWriterPool.Put(gz)
 	}
 }
 

@@ -81,7 +81,7 @@ func TestUpdateCounters(t *testing.T) {
 
 	m, exist := s.GetMetric("Test1")
 	require.True(t, exist)
-	assert.Equal(t, 2* metrics["Test1"], m)
+	assert.Equal(t, 2*metrics["Test1"], m)
 }
 
 func TestMemStorage_Reset(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 	agent "github.com/morzisorn/metrics/internal/agent/services"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
-	_ "net/http/pprof"
 )
 
 var Service *config.Service
@@ -27,7 +26,7 @@ func RunAgent() error {
 			if err != nil {
 				return err
 			}
-			
+
 			if time.Since(lastReport).Seconds() >= Service.Config.ReportInterval {
 				if len(m.Metrics) > 0 {
 					lastReport = time.Now()
