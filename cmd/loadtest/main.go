@@ -36,8 +36,8 @@ func main() {
 		go func(workerID int) {
 			defer wg.Done()
 
-			var baseValue float64 = 1.0
-			var baseDelta int64 = 1
+			baseValue := 1.0
+			baseDelta := int64(1)
 
 			for j := 0; j < requestsPerWorker; j++ {
 				metrics := []Metric{
