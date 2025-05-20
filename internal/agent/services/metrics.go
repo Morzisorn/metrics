@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// RuntimeGauges contains gauge metrics that agent collects
 var RuntimeGauges = []string{
 	"Alloc",
 	"BuckHashSys",
@@ -45,15 +46,19 @@ var RuntimeGauges = []string{
 	"TotalAlloc",
 }
 
+// MetricsCollector is an interface for collecting runtime metrics
 type MetricsCollector interface {
 	PollMetrics() error
 }
 
+// Metrics is a model of metrics map
+// Also includes mutex
 type Metrics struct {
 	Metrics map[string]Metric
 	Mu      sync.RWMutex
 }
 
+// Metric is an wrapper for models.Metric
 type Metric struct {
 	models.Metric
 }
@@ -63,6 +68,8 @@ const (
 	RandomValueMetric = "RandomValue" //float64
 )
 
+// PollMetrics polls metrics from runtime
+// Adds Random gauge metric and Counter
 func (m *Metrics) PollMetrics() error {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -118,7 +125,7 @@ func (m *Metrics) setRandom() {
 		Metric: models.Metric{
 			ID:    RandomValueMetric,
 			MType: "gauge",
-			Value: GetRandomValue(),
+			Value: getRandomValue(),
 		},
 	}
 }
@@ -195,6 +202,7 @@ func (m *Metrics) collectMemCPU(wg *sync.WaitGroup) {
 	m.Mu.Unlock()
 }
 
+// GetMetric takes gauge metric by name and returns
 func GetMetric(memStats *reflect.Value, gauge string) (Metric, error) {
 	field := memStats.FieldByName(gauge)
 
@@ -224,11 +232,12 @@ func GetMetric(memStats *reflect.Value, gauge string) (Metric, error) {
 
 var rng = rand.New(rand.NewSource(time.Now().UnixNano())) // Создаём генератор случайных чисел
 
-func GetRandomValue() *float64 {
+func getRandomValue() *float64 {
 	v := rng.Float64()
 	return &v
 }
 
+// ResetCounter is used to reset counter metric after it sends to server
 func (m *Metrics) ResetCounter() {
 	m.Mu.Lock()
 	if m.Metrics[CounterMetric].Delta != nil {
@@ -237,6 +246,7 @@ func (m *Metrics) ResetCounter() {
 	m.Mu.Unlock()
 }
 
+// LoadMetricsToChan receives channel and sends all metrics there
 func (m *Metrics) LoadMetricsToChan(ch chan Metric) {
 	m.Mu.RLock()
 	for _, metric := range m.Metrics {

@@ -10,16 +10,18 @@ import (
 	"go.uber.org/zap"
 )
 
-const ContentTypeJSON = "application/json"
+const contentTypeJSON = "application/json"
 
 type MetricController struct {
 	service *metrics.MetricService
 }
 
+// NewMetricController receives Metric service and creates Metric controller, returns pointer.
 func NewMetricController(service *metrics.MetricService) *MetricController {
 	return &MetricController{service: service}
 }
 
+// UpdateMetricParams receives one metric sent by query params and updates or creates new one.
 func (mc *MetricController) UpdateMetricParams(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		c.String(http.StatusMethodNotAllowed, "Invalid request method")
@@ -73,13 +75,14 @@ func (mc *MetricController) UpdateMetricParams(c *gin.Context) {
 	c.String(http.StatusOK, "OK")
 }
 
+// UpdateMetricBody receives one metric sent by body and updates or creates new one.
 func (mc *MetricController) UpdateMetricBody(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		c.String(http.StatusMethodNotAllowed, "Invalid request method")
 		return
 	}
 
-	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+	if c.Request.Header.Get("Content-Type") != contentTypeJSON {
 		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return
 	}
@@ -108,13 +111,14 @@ func (mc *MetricController) UpdateMetricBody(c *gin.Context) {
 	c.JSON(http.StatusOK, metric)
 }
 
+// UpdateMetrics receives batch of metrics by body and updates or create each of them.
 func (mc *MetricController) UpdateMetrics(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		c.String(http.StatusMethodNotAllowed, "Invalid request method")
 		return
 	}
 
-	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+	if c.Request.Header.Get("Content-Type") != contentTypeJSON {
 		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return
 	}
@@ -135,6 +139,8 @@ func (mc *MetricController) UpdateMetrics(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// GetMetricParams receives metric's name and type sent by query params and
+// returns them with value
 func (mc *MetricController) GetMetricParams(c *gin.Context) {
 	var metric metrics.Metric
 	metric.ID = c.Params.ByName("metric")
@@ -161,8 +167,10 @@ func (mc *MetricController) GetMetricParams(c *gin.Context) {
 	}
 }
 
+// GetMetricBody receives metric's name and type sent by body and
+// returns them with value
 func (mc *MetricController) GetMetricBody(c *gin.Context) {
-	if c.Request.Header.Get("Content-Type") != ContentTypeJSON {
+	if c.Request.Header.Get("Content-Type") != contentTypeJSON {
 		logger.Log.Info("Invalid content type", zap.String("Content-Type :", c.Request.Header.Get("Content-Type")))
 		c.String(http.StatusMethodNotAllowed, "Invalid content type")
 		return

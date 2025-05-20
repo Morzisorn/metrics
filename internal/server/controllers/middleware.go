@@ -36,6 +36,8 @@ var gzipWriterPool = sync.Pool{
 	},
 }
 
+// GzipMiddleware decompresses requests and compresses responses bases on
+// request headers.
 func GzipMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.Contains(c.Request.Header.Get("Content-Encoding"), "gzip") {
@@ -74,8 +76,6 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		c.Writer = gzw
 		c.Next()
-
-		//gzw.Close()
 
 		contentType := c.Writer.Header().Get("Content-Type")
 
@@ -135,6 +135,8 @@ func (g *gzipResponseWriter) WriteHeader(code int) {
 	g.ResponseWriter.WriteHeader(code)
 }
 
+// SignMiddleware checks if key is set up.
+// If yes, it checks if HashSHA256 header is correct.
 func SignMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if config.GetService().Config.Key == "" {

@@ -1,3 +1,4 @@
+// Package logger i used to log info
 package logger
 
 import (
@@ -10,6 +11,8 @@ import (
 
 var Log *zap.Logger = zap.NewNop()
 
+// Init creates new logger
+// Should be used once when app starts
 func Init() error {
 	cfg := zap.NewProductionConfig()
 
@@ -26,6 +29,8 @@ func Init() error {
 	return nil
 }
 
+// LoggerMiddleware logs URI and method of request
+// and more field of response depends on status code
 func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
