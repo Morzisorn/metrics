@@ -148,6 +148,7 @@ func TestUpdateMetric(t *testing.T) {
 	err := service.UpdateMetric(&(tests[1]))
 	assert.NoError(t, err)
 	err = service.GetMetric(&findCounter)
+	assert.NoError(t, err)
 
 	assert.Equal(t, int64(2), *findCounter.Delta)
 
@@ -163,6 +164,7 @@ func TestUpdateMetric(t *testing.T) {
 	err = service.UpdateMetric(&(tests[0]))
 	assert.NoError(t, err)
 	err = service.GetMetric(&findGauge)
+	assert.NoError(t, err)
 
 	assert.Equal(t, 75.4, *findGauge.Value)
 
