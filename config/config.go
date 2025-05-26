@@ -59,8 +59,10 @@ func GetService(app ...string) *Service {
 	return instance
 }
 
+var getEnvPath = getEncFilePath
+
 func New(app string) (*Service, error) {
-	envPath := getEncFilePath()
+	envPath := getEnvPath()
 	if err := loadEnvFile(envPath); err != nil {
 		fmt.Printf("Load .env error: %v. Env path: %s\n", err, envPath)
 	}

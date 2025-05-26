@@ -1,16 +1,33 @@
 package main
 
-/*
-func TestMainHandler(t *testing.T) {
-	mux := createServer()
+import (
+	"testing"
 
-	ts := httptest.NewServer(mux)
-	defer ts.Close()
+	"github.com/gin-gonic/gin"
+	"github.com/morzisorn/metrics/config"
+	"github.com/morzisorn/metrics/internal/server/controllers"
+	"github.com/morzisorn/metrics/internal/server/repositories"
+	"github.com/morzisorn/metrics/internal/server/services/health"
+	"github.com/morzisorn/metrics/internal/server/services/metrics"
+	"github.com/morzisorn/metrics/internal/server/services/pages"
+	"github.com/stretchr/testify/require"
+)
 
-	resp, err := http.Post(ts.URL+"/update/counter/test/1", "text/plain", nil)
-	assert.NoError(t, err)
-	defer resp.Body.Close()
+func TestCreateServer(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	cnfg = config.GetService("server")
+
+	storage := repositories.NewStorage(cnfg.Config)
+	metricsService := metrics.NewMetricService(storage)
+	pagesService := pages.NewPagesService(metricsService)
+	healthService := health.NewHealthService(storage)
+
+	metricsController := controllers.NewMetricController(metricsService)
+	pagesController := controllers.NewPagesController(pagesService)
+	healthController := controllers.NewHealthController(healthService)
+
+	router := createServer(metricsController, pagesController, healthController)
+
+	require.NotNil(t, router)
 }
-*/
