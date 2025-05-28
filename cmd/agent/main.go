@@ -11,6 +11,12 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 var Service *config.Service
 
 func RunAgent() error {
@@ -48,6 +54,7 @@ func RunAgent() error {
 }
 
 func main() {
+	config.PrintMetaInfo(buildVersion, buildDate, buildCommit)
 	var err error
 	Service = config.GetService("agent")
 	err = RunAgent()

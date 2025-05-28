@@ -17,6 +17,12 @@ import (
 )
 
 var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
+var (
 	cnfg *config.Service
 )
 
@@ -68,6 +74,7 @@ func runServer(mux *gin.Engine) error {
 }
 
 func main() {
+	config.PrintMetaInfo(buildVersion, buildDate, buildCommit)
 	cnfg = config.GetService("server")
 
 	storage := repositories.NewStorage(cnfg.Config)
