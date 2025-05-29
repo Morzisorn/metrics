@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-var (
-	concurrency             = 5
-	requestsPerWorker       = 1000
-	sleepBeforeStartSeconds = 3
-	targetURL               = "http://localhost:8080/updates"
+type Config struct {
+	concurrency             int
+	requestsPerWorker       int
+	sleepBeforeStartSeconds int
+	targetURL               string
+}
 
-	client *http.Client
-)
+var client *http.Client
 
 type Metric struct {
 	ID    string   `json:"id"`
@@ -26,11 +26,17 @@ type Metric struct {
 }
 
 func main() {
-	run()
+	cfg := Config{
+		concurrency:             5,
+		requestsPerWorker:       1000,
+		sleepBeforeStartSeconds: 3,
+		targetURL:               "http://localhost:8080/updates",
+	}
+	run(cfg)
 }
 
-func run() {
-	time.Sleep(time.Duration(sleepBeforeStartSeconds) * time.Second)
+func run(cfg Config) {
+	time.Sleep(time.Duration(cfg.sleepBeforeStartSeconds) * time.Second)
 	var wg sync.WaitGroup
 	client = &http.Client{
 		Timeout: 5 * time.Second,
@@ -38,7 +44,7 @@ func run() {
 
 	log.Println("Starting load test...")
 
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < cfg.concurrency; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
@@ -46,9 +52,9 @@ func run() {
 			baseValue := 1.0
 			baseDelta := int64(1)
 
-			for j := 0; j < requestsPerWorker; j++ {
+			for j := 0; j < cfg.requestsPerWorker; j++ {
 				metrics := initMetrics(baseValue, baseDelta, j)
-				err := makeRequest(metrics, workerID, j)
+				err := makeRequest(cfg, metrics, workerID, j)
 				if err != nil {
 					continue
 				}
@@ -80,14 +86,14 @@ func initMetrics(baseValue float64, baseDelta int64, j int) []Metric {
 	}
 }
 
-func makeRequest(metrics []Metric, workerID, j int) error {
+func makeRequest(cfg Config, metrics []Metric, workerID, j int) error {
 	body, err := json.Marshal(metrics)
 	if err != nil {
 		log.Printf("Worker %d: JSON marshal error: %v", workerID, err)
 		return err
 	}
 
-	resp, err := client.Post(targetURL, "application/json", bytes.NewReader(body))
+	resp, err := client.Post(cfg.targetURL, "application/json", bytes.NewReader(body))
 	if err != nil {
 		log.Printf("Worker %d: request %d failed: %v", workerID, j, err)
 		return err

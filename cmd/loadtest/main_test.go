@@ -56,12 +56,17 @@ func TestMakeRequest_Success(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	targetURL = server.URL + "/updates"
+	cfg := Config{
+		concurrency:             5,
+		requestsPerWorker:       1000,
+		sleepBeforeStartSeconds: 3,
+		targetURL:               server.URL + "/updates",
+	}
 
 	client = server.Client()
 
 	metrics := initMetrics(1.0, 1, 0)
-	err := makeRequest(metrics, 1, 1)
+	err := makeRequest(cfg, metrics, 1, 1)
 	require.NoError(t, err)
 }
 
@@ -77,24 +82,30 @@ func TestRun(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
+	cfg := Config{
+		concurrency:             5,
+		requestsPerWorker:       1000,
+		sleepBeforeStartSeconds: 3,
+		targetURL:               server.URL + "/updates",
+	}
 
 	// заменяем глобальные переменные на тестовые
 	client = server.Client()
-	targetURL = server.URL + "/updates"
+	cfg.targetURL = server.URL + "/updates"
 
 	// уменьшаем задержку запуска и количество запросов для ускорения теста
-	origSleep := sleepBeforeStartSeconds
-	defer func() { sleepBeforeStartSeconds = origSleep }()
-	sleepBeforeStartSeconds = 0
+	origSleep := cfg.sleepBeforeStartSeconds
+	defer func() { cfg.sleepBeforeStartSeconds = origSleep }()
+	cfg.sleepBeforeStartSeconds = 0
 
-	origConcurrency := concurrency
-	origRequestsPerWorker := requestsPerWorker
+	origConcurrency := cfg.concurrency
+	origRequestsPerWorker := cfg.requestsPerWorker
 	defer func() {
-		concurrency = origConcurrency
-		requestsPerWorker = origRequestsPerWorker
+		cfg.concurrency = origConcurrency
+		cfg.requestsPerWorker = origRequestsPerWorker
 	}()
-	concurrency = 2
-	requestsPerWorker = 5
+	cfg.concurrency = 2
+	cfg.requestsPerWorker = 5
 
-	run()
+	run(cfg)
 }

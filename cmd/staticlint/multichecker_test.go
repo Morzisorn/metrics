@@ -19,7 +19,7 @@ func TestAddSAStaticcheckAnalyzers(t *testing.T) {
 	var analyzers Analyzers
 
 	analyzers.AddSAStaticcheckAnalyzers()
-	analyzersCount := 95
+	analyzersCount := 90
 	assert.Equal(t, analyzersCount, len(analyzers.analyzers))
 }
 

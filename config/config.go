@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
@@ -26,6 +27,7 @@ type AgentConfig struct {
 	PollInterval   float64
 	ReportInterval float64
 	RateLimit      int64
+	RetryDelays    []time.Duration
 }
 
 type ServerConfig struct {

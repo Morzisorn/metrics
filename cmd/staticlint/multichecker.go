@@ -155,7 +155,7 @@ func (a *Analyzers) AddNotSAStaticcheckAnalyzers() {
 func (a *Analyzers) AddThirdPartyAnalyzers() {
 	a.analyzers = append(a.analyzers,
 		nilness.Analyzer,
-		simple.Analyzers[0].Analyzer,
+		stylecheck.Analyzers[0].Analyzer,
 	)
 }
 

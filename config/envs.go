@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/morzisorn/metrics/internal/server/logger"
@@ -51,6 +53,14 @@ func (c *Config) parseAgentEnvs() {
 	l, err := getEnvInt("RATE_LIMIT")
 	if err == nil {
 		c.RateLimit = l
+	}
+
+	rd, err := getEnvString("RETRY_DELAYS")
+	if err == nil {
+		c.RetryDelays, err = parseRetryDelays(rd)
+		if err != nil {
+			logger.Log.Panic("Parse env error ", zap.Error(err))
+		}
 	}
 }
 
@@ -121,4 +131,17 @@ func getEnvBool(key string) (bool, error) {
 		return strconv.ParseBool(env)
 	}
 	return false, fmt.Errorf("env %s not found", key)
+}
+
+func parseRetryDelays(s string) ([]time.Duration, error){
+	splited := strings.Split(s, ",")
+	res := make([]time.Duration, len(splited))
+	for i, v := range splited {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("env retry delays have to contain integers only")
+		}
+		res[i] = time.Duration(n) * time.Second
+	}
+	return res, nil
 }
