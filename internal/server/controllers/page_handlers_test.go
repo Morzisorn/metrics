@@ -21,7 +21,7 @@ func TestGetMetricsPage_Success(t *testing.T) {
 		Metric: models.Metric{
 			ID:    "test5",
 			MType: "counter",
-			Delta: ptrInt64(1),
+			Delta: getPointer(int64(1)),
 		},
 	}
 	err := metricService.UpdateMetric(metric)

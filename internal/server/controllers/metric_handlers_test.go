@@ -213,7 +213,7 @@ func TestUpdateCounterBodyOK(t *testing.T) {
 		Metric: models.Metric{
 			ID:    "test2",
 			MType: "counter",
-			Delta: ptrInt64(1),
+			Delta: getPointer(int64(1)),
 		},
 	}
 	b, err := json.Marshal(metric)
@@ -250,7 +250,7 @@ func TestUpdateGaugeBodyOK(t *testing.T) {
 		Metric: models.Metric{
 			ID:    "test",
 			MType: "gauge",
-			Value: ptrFloat64(2.5),
+			Value: getPointer(2.5),
 		},
 	}
 	b, err := json.Marshal(metric)
@@ -287,7 +287,7 @@ func TestUpdateMetricsOK(t *testing.T) {
 		Metric: models.Metric{
 			ID:    "test3",
 			MType: "gauge",
-			Value: ptrFloat64(2.5),
+			Value: getPointer(2.5),
 		},
 	}
 	b, err := json.Marshal([]metrics.Metric{*metric})
@@ -318,7 +318,7 @@ func TestGetMetricParamsOK(t *testing.T) {
 		Metric: models.Metric{
 			ID:    "test4",
 			MType: "counter",
-			Delta: ptrInt64(1),
+			Delta: getPointer(int64(1)),
 		},
 	}
 	err := service.UpdateMetric(metric)
@@ -348,7 +348,7 @@ func TestGetMetricBodyOK(t *testing.T) {
 		Metric: models.Metric{
 			ID:    "test5",
 			MType: "counter",
-			Delta: ptrInt64(1),
+			Delta: getPointer(int64(1)),
 		},
 	}
 	err := service.UpdateMetric(metric)
@@ -380,10 +380,6 @@ func createTestMetricService() *metrics.MetricService {
 	return metrics.NewMetricService(storage)
 }
 
-func ptrInt64(v int64) *int64 {
-	return &v
-}
-
-func ptrFloat64(v float64) *float64 {
+func getPointer[T any](v T) *T {
 	return &v
 }
