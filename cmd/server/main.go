@@ -16,11 +16,20 @@ import (
 	"github.com/morzisorn/metrics/internal/server/services/pages"
 )
 
-var (
-	buildVersion string
-	buildDate    string
-	buildCommit  string
-)
+// buildVersion represents the version of the application.
+// It is injected during build using -ldflags.
+// Example: go build -ldflags "-X main.buildVersion=1.0.0"
+var buildVersion string
+
+// buildDate represents the build date of the application.
+// It is injected during build using -ldflags.
+// Example: go build -ldflags "-X main.buildDate=2025-05-29"
+var buildDate string
+
+// buildCommit represents the commit from which the application was built.
+// It is injected during build using -ldflags.
+// Example: go build -ldflags "-X main.buildCommit=abc123"
+var buildCommit string
 
 var (
 	cnfg *config.Service
