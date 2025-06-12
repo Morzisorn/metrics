@@ -7,13 +7,16 @@ import (
 	"resty.dev/v3"
 )
 
+// HTTPClient contains pointer to resty client and server base url
 type HTTPClient struct {
 	BaseURL string
 	Client  *resty.Client
 }
 
-var RetryDelays = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
+// Delays for retrier
+var retryDelays = []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 
+// NewClient creates new pointer to HTTPClient based on config
 func NewClient(s *config.Service) *HTTPClient {
 	c := HTTPClient{
 		BaseURL: s.Config.Addr,
@@ -21,7 +24,7 @@ func NewClient(s *config.Service) *HTTPClient {
 			SetBaseURL(s.Config.Addr),
 	}
 
-	c.Client.SetRetryCount(len(RetryDelays)).
+	c.Client.SetRetryCount(len(retryDelays)).
 		AddRetryConditions(retryConditions).
 		AddRetryHooks(retryHook)
 

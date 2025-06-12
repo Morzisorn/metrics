@@ -1,3 +1,4 @@
+// Package hash is used to generate hash
 package hash
 
 import (
@@ -6,6 +7,8 @@ import (
 	"github.com/morzisorn/metrics/config"
 )
 
+// GetHash receives slice of bytes and returns 32 bytes array.
+// Uses sha256 algorithm.
 func GetHash(body []byte) [32]byte {
 	service := config.GetService()
 	str := append(body, []byte(service.Config.Key)...)

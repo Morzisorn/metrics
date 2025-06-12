@@ -1,132 +1,214 @@
 package metrics
 
-/*
+import (
+	"testing"
+
+	"github.com/morzisorn/metrics/config"
+	"github.com/morzisorn/metrics/internal/models"
+	"github.com/morzisorn/metrics/internal/server/repositories"
+	"github.com/morzisorn/metrics/internal/server/repositories/file"
+	"github.com/morzisorn/metrics/internal/server/repositories/memory"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
 func TestGetMetric(t *testing.T) {
-	s := storage.GetStorage()
-	tests := []struct {
-		metric Metric
-		expect float64
-	}{
+	cfg := config.GetService("server")
+	storage := repositories.NewStorage(cfg.Config)
+	service := NewMetricService(storage)
+
+	f1 := 75.4
+	i1 := int64(4)
+
+	tests := []Metric{
 		{
-			metric: Metric{
-				Metric: models.Metric{
-					ID:    "test_metric",
-					MType: "gauge",
-					Value: new(float64),
-				},
+			models.Metric{
+				ID:    "test_metric1",
+				MType: "gauge",
+				Value: &f1,
 			},
-			expect: 42.123,
 		},
 		{
-			metric: Metric{
-				Metric: models.Metric{
-					ID:    "non_existent_metric",
-					MType: "gauge",
-					Value: new(float64),
-				},
+			models.Metric{
+				ID:    "test_metric2",
+				MType: "counter",
+				Delta: &i1,
 			},
-			expect: float64(0),
 		},
 	}
 
-	// Metric exists
-	err := s.UpdateGauge(tests[0].metric.ID, tests[0].expect)
+	// Update all metrics
+	err := service.UpdateMetrics(&tests)
+	require.NoError(t, err)
+
+	// Get 1 metric
+	find := Metric{
+		models.Metric{
+			ID:    "test_metric1",
+			MType: "gauge",
+			Value: new(float64),
+		},
+	}
+	err = service.GetMetric(&find)
+
 	assert.NoError(t, err)
+	assert.Equal(t, f1, *find.Value)
 
-	err = tests[0].metric.GetMetric()
-
-	assert.NoError(t, err, "Expected no error for existing metric")
-	assert.Equal(t, tests[0].expect, *tests[0].metric.Value, "Expected trimmed metric value")
-
-	// Metric does not exist
-	err = tests[1].metric.GetMetric()
-
-	assert.Error(t, err, "Expected error for non-existent metric")
-	assert.Equal(t, tests[1].expect, *tests[1].metric.Value, "Expected 0 for missing metric")
+	// Get unknown
+	unknown := Metric{
+		models.Metric{
+			ID:    "unknown_metric",
+			MType: "gauge",
+		},
+	}
+	err = service.GetMetric(&unknown)
+	require.Error(t, err)
 }
 
-func TestGetMetrics(t *testing.T) {
-	s := storage.GetStorage()
-	s.Reset()
+func TestGetMetricsStr(t *testing.T) {
+	storage := memory.GetStorage()
+	storage.Reset()
+	service := NewMetricService(storage)
 
-	// Adding test metrics
-	err := s.UpdateGauge("metric1", 10.5)
-	assert.NoError(t, err)
-	err = s.UpdateGauge("metric2", 20.0)
-	assert.NoError(t, err)
-	err = s.UpdateGauge("metric3", 30.123456)
-	assert.NoError(t, err)
+	v1 := 75.400
+	v2 := 4.3
 
-	metrics, err := GetMetricsStr()
+	tests := []Metric{
+		{
+			models.Metric{
+				ID:    "test_metric1",
+				MType: "gauge",
+				Value: &v1,
+			},
+		},
+		{
+			models.Metric{
+				ID:    "test_metric2",
+				MType: "gauge",
+				Value: &v2,
+			},
+		},
+	}
+
+	// Update all metrics
+	err := service.UpdateMetrics(&tests)
+	require.NoError(t, err)
+
+	metrics, err := service.GetMetricsStr()
 	require.NoError(t, err)
 
 	expected := map[string]string{
-		"metric1": "10.5",
-		"metric2": "20",
-		"metric3": "30.123456",
+		"test_metric1": "75.4",
+		"test_metric2": "4.3",
 	}
 
-	assert.Equal(t, expected, metrics, "Expected correctly trimmed metric values")
+	assert.Equal(t, expected, *metrics, "Expected correctly trimmed metric values")
 }
 
 func TestUpdateMetric(t *testing.T) {
-	tests := []struct {
-		metric Metric
-		err    string
-	}{
+	storage := memory.GetStorage()
+	storage.Reset()
+	service := NewMetricService(storage)
+
+	f1 := 75.400
+	i1 := int64(2)
+
+	tests := []Metric{
 		{
-			metric: Metric{
-				Metric: models.Metric{
-					MType: "counter",
-					ID:    "counter_metric",
-					Delta: new(int64),
-				},
+			models.Metric{
+				ID:    "test_gauge",
+				MType: "gauge",
+				Value: &f1,
 			},
-			err: "",
 		},
 		{
-			metric: Metric{
-				Metric: models.Metric{
-					MType: "gauge",
-					ID:    "gauge_metric",
-					Value: new(float64),
-				},
+			models.Metric{
+				ID:    "test_counter",
+				MType: "counter",
+				Delta: &i1,
 			},
-			err: "",
 		},
 		{
-			metric: Metric{
-				Metric: models.Metric{
-					MType: "invalid_type",
-					ID:    "metric_invalid",
-					Delta: new(int64),
-				},
+			models.Metric{
+				MType: "invalid_type",
+				ID:    "metric_invalid",
+				Delta: &i1,
 			},
-			err: "invalid metric type",
 		},
 	}
-	// Test updating a counter metric
-	*tests[0].metric.Delta = 5
 
-	err := tests[0].metric.UpdateMetric()
-	assert.NoError(t, err, "Expected no error for updating counter metric")
-	s := storage.GetStorage()
-	have, _ := s.GetMetric(tests[0].metric.ID)
-	assert.Equal(t, 5.0, have, "Expected updated counter metric value")
+	// Test updating a counter metric
+	findCounter := Metric{
+		models.Metric{
+			ID:    "test_counter",
+			MType: "counter",
+			Value: new(float64),
+		},
+	}
+	err := service.UpdateMetric(&(tests[1]))
+	assert.NoError(t, err)
+	err = service.GetMetric(&findCounter)
+	assert.NoError(t, err)
+
+	assert.Equal(t, int64(2), *findCounter.Delta)
 
 	// Test updating a gauge metric
-	*tests[1].metric.Value = 15.678
+	findGauge := Metric{
+		models.Metric{
+			ID:    "test_gauge",
+			MType: "gauge",
+			Value: new(float64),
+		},
+	}
 
-	err = tests[1].metric.UpdateMetric()
-	assert.NoError(t, err, "Expected no error for updating gauge metric")
-	assert.Equal(t, 15.678, *tests[1].metric.Value, "Expected updated metric")
+	err = service.UpdateMetric(&(tests[0]))
+	assert.NoError(t, err)
+	err = service.GetMetric(&findGauge)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 75.4, *findGauge.Value)
 
 	// Test invalid metric type
-	*tests[2].metric.Delta = 123
+	err = service.UpdateMetric(&(tests[2]))
+	require.Error(t, err)
+}
 
-	err = tests[2].metric.UpdateMetric()
-	assert.Error(t, err, "Expected error for invalid metric type")
-	assert.Equal(t, "invalid metric type", err.Error(), "Expected specific error message")
+func TestLoadMetricsFromFile(t *testing.T) {
+	storage1, err := file.NewStorage("./test_file")
+	require.NoError(t, err)
+	service1 := NewMetricService(storage1)
+
+	v1 := 75.400
+	v2 := 4.3
+
+	tests := []Metric{
+		{
+			models.Metric{
+				ID:    "test_metric1",
+				MType: "gauge",
+				Value: &v1,
+			},
+		},
+		{
+			models.Metric{
+				ID:    "test_metric2",
+				MType: "gauge",
+				Value: &v2,
+			},
+		},
+	}
+
+	err = service1.UpdateMetrics(&tests)
+	require.NoError(t, err)
+
+	storage2, err := file.NewStorage("./test_file")
+	require.NoError(t, err)
+
+	service2 := NewMetricService(storage2)
+
+	err = service2.LoadMetricsFromFile()
+
+	require.NoError(t, err)
 }
 
 func TestTrimTrailingZeros(t *testing.T) {
@@ -147,4 +229,3 @@ func TestTrimTrailingZeros(t *testing.T) {
 		assert.Equal(t, test.expected, result, "Expected trimmed string")
 	}
 }
-*/

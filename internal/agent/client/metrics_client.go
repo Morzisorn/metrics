@@ -12,10 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// MetricsClient is used to send single metric to server
 type MetricsClient interface {
 	SendMetric(mType string, name string, value float64) error
 }
 
+// SendMetric sends single metric to server
 func (c *HTTPClient) SendMetric(m *agent.Metric) error {
 	url := fmt.Sprintf("http://%s/update/", c.BaseURL)
 
@@ -52,6 +54,7 @@ func (c *HTTPClient) metricSenderJob(chIn chan agent.Metric, wg *sync.WaitGroup)
 	}
 }
 
+// SendMetricsByOne reads metrics from channel and manage sending them by one
 func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 	chIn := make(chan agent.Metric, len(m.Metrics))
 	defer close(chIn)
@@ -77,6 +80,7 @@ func (c *HTTPClient) runWorkers(chIn chan agent.Metric, wg *sync.WaitGroup, rate
 	}
 }
 
+// SendMetricsBatch sends all slice of metrics in one request
 func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
 	url := fmt.Sprintf("http://%s/updates/", c.BaseURL)
 

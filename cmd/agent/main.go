@@ -26,7 +26,7 @@ func RunAgent() error {
 			if err != nil {
 				return err
 			}
-			
+
 			if time.Since(lastReport).Seconds() >= Service.Config.ReportInterval {
 				if len(m.Metrics) > 0 {
 					lastReport = time.Now()

@@ -1,8 +1,10 @@
 package agent
 
 import (
+	"sync"
 	"testing"
 
+	"github.com/morzisorn/metrics/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -12,6 +14,18 @@ func TestPollAllMetrics(t *testing.T) {
 	require.NoError(t, m.PollMetrics())
 	assert.NotEmpty(t, m.Metrics)
 
+}
+
+func BenchmarkPollAllMetrics(b *testing.B) {
+	tries := 10000
+	m := Metrics{}
+
+	for i := 0; i < tries; i++ {
+		err := m.PollMetrics()
+		if err != nil {
+			b.Fatal("")
+		}
+	}
 }
 
 /*
@@ -49,3 +63,72 @@ func TestGetMetric(t *testing.T) {
 	}
 }
 */
+
+func TestLoadMetricsToChan(t *testing.T) {
+	delta := int64(7)
+	value := 5.3
+	m := Metrics{
+		Metrics: map[string]Metric{
+			"PollCount": {
+				Metric: models.Metric{
+					ID:    "PollCount",
+					MType: "counter",
+					Delta: &delta,
+				},
+			},
+			"GaugeMetric": {
+				Metric: models.Metric{
+					ID:    "GaugeMetric",
+					MType: "gauge",
+					Value: &value,
+				},
+			},
+		},
+	}
+
+	ch := make(chan Metric)
+	defer close(ch)
+
+	go m.LoadMetricsToChan(ch)
+
+	counter := <-ch
+	gauge := <-ch
+
+	assert.Equal(t, *m.Metrics["PollCount"].Delta, *counter.Delta)
+	assert.Equal(t, *m.Metrics["GaugeMetric"].Value, *gauge.Value)
+}
+
+func TestCollectMemCPU(t *testing.T) {
+	var wg sync.WaitGroup
+
+	m := newEmptyMetrics()
+
+	wg.Add(1)
+	m.collectMemCPU(&wg)
+
+	wg.Wait()
+	assert.NotNil(t, m.Metrics["CPUutilization1"].Value)
+	assert.NotNil(t, m.Metrics["TotalMemory"].MType)
+	assert.NotNil(t, m.Metrics["FreeMemory"].Value)
+}
+
+func TestSetRandom(t *testing.T) {
+	m := newEmptyMetrics()
+	m.setRandom()
+
+	assert.NotNil(t, m.Metrics[RandomValueMetric].Value)
+}
+
+func TestSetCounter(t *testing.T) {
+	m := newEmptyMetrics()
+	c := int64(2)
+	m.setCounter(&c)
+
+	assert.Equal(t, int64(2), *m.Metrics[CounterMetric].Delta)
+}
+
+func newEmptyMetrics() Metrics {
+	return Metrics{
+		Metrics: map[string]Metric{},
+	}
+}

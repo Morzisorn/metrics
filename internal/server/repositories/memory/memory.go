@@ -39,7 +39,6 @@ func (m *MemStorage) UpdateCounters(metrics *map[string]float64) error {
 			return err
 		}
 	}
-
 	return nil
 }
 

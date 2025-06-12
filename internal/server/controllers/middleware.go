@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"compress/gzip"
 
@@ -29,6 +30,14 @@ type responseWriter struct {
 	status int
 }
 
+var gzipWriterPool = sync.Pool{
+	New: func() any {
+		return gzip.NewWriter(io.Discard)
+	},
+}
+
+// GzipMiddleware decompresses requests and compresses responses bases on
+// request headers.
 func GzipMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.Contains(c.Request.Header.Get("Content-Encoding"), "gzip") {
@@ -55,7 +64,8 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 
 		buf := new(bytes.Buffer)
-		gz := gzip.NewWriter(buf)
+		gz := gzipWriterPool.Get().(*gzip.Writer)
+		gz.Reset(buf)
 
 		gzw := &gzipResponseWriter{
 			ResponseWriter: c.Writer,
@@ -66,8 +76,6 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		c.Writer = gzw
 		c.Next()
-
-		gzw.Close()
 
 		contentType := c.Writer.Header().Get("Content-Type")
 
@@ -118,6 +126,7 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 func (g *gzipResponseWriter) Close() {
 	if gz, ok := g.writer.(*gzip.Writer); ok {
 		gz.Close()
+		gzipWriterPool.Put(gz)
 	}
 }
 
@@ -126,6 +135,8 @@ func (g *gzipResponseWriter) WriteHeader(code int) {
 	g.ResponseWriter.WriteHeader(code)
 }
 
+// SignMiddleware checks if key is set up.
+// If yes, it checks if HashSHA256 header is correct.
 func SignMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if config.GetService().Config.Key == "" {
