@@ -44,6 +44,7 @@ func createServer(
 	mux := gin.Default()
 	mux.Use(
 		logger.LoggerMiddleware(),
+		controllers.DecryptMiddleware(),
 		controllers.GzipMiddleware(),
 		controllers.SignMiddleware(),
 	)

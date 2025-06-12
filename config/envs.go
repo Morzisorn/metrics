@@ -1,8 +1,12 @@
 package config
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -62,6 +66,19 @@ func (c *Config) parseAgentEnvs() {
 			logger.Log.Panic("Parse env error ", zap.Error(err))
 		}
 	}
+
+	cryptoPath, err := getEnvString("CRYPTO_KEY")
+	if err == nil {
+		c.CryptoKeyPath = cryptoPath
+		pemData, err := getStringFromFile(c.CryptoKeyPath)
+		if err != nil {
+			logger.Log.Panic("get crypto key from file error ", zap.Error(err))
+		}
+		c.PublicKey, err = getKeyFromPem[*rsa.PublicKey](pemData)
+		if err != nil {
+			logger.Log.Panic("parse public key error ", zap.Error(err))
+		}
+	}
 }
 
 func (c *Config) parseServerEnvs() {
@@ -99,6 +116,19 @@ func (c *Config) parseServerEnvs() {
 	if err == nil {
 		c.Key = k
 	}
+
+	cryptoPath, err := getEnvString("CRYPTO_KEY")
+	if err == nil {
+		c.CryptoKeyPath = cryptoPath
+		pemData, err := getStringFromFile(c.CryptoKeyPath)
+		if err != nil {
+			logger.Log.Panic("get crypto key from file error ", zap.Error(err))
+		}
+		c.PrivateKey, err = getKeyFromPem[*rsa.PrivateKey](pemData)
+		if err != nil {
+			logger.Log.Panic("parse private key error ", zap.Error(err))
+		}
+	}
 }
 
 func getEnvFloat(key string) (float64, error) {
@@ -133,7 +163,7 @@ func getEnvBool(key string) (bool, error) {
 	return false, fmt.Errorf("env %s not found", key)
 }
 
-func parseRetryDelays(s string) ([]time.Duration, error){
+func parseRetryDelays(s string) ([]time.Duration, error) {
 	splited := strings.Split(s, ",")
 	res := make([]time.Duration, len(splited))
 	for i, v := range splited {
@@ -144,4 +174,53 @@ func parseRetryDelays(s string) ([]time.Duration, error){
 		res[i] = time.Duration(n) * time.Second
 	}
 	return res, nil
+}
+
+func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error) {
+	var zero T
+	rest := []byte(pemData)
+	for {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			return nil, fmt.Errorf("no PUBLIC KEY block found")
+		}
+
+		if _, isPub := any(zero).(*rsa.PublicKey); isPub && block.Type == "PUBLIC KEY" {
+			pubIfc, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			pub, ok := pubIfc.(T)
+			if !ok {
+				return nil, fmt.Errorf("not RSA public key")
+			}
+			return pub, nil
+		}
+
+		if _, isPriv := any(zero).(*rsa.PrivateKey); isPriv && block.Type == "PRIVATE KEY" {
+			privIfc, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			priv, ok := privIfc.(T)
+			if !ok {
+				return nil, fmt.Errorf("not RSA private key")
+			}
+			return priv, nil
+		}
+
+		rest = remaining
+	}
+}
+
+func getStringFromFile(path string) (string, error) {
+	root, err := GetProjectRoot()
+	if err != nil {
+		return "", err
+	}
+	data, err := os.ReadFile(filepath.Join(root, path))
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }

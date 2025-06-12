@@ -38,6 +38,11 @@ func NewClient(s *config.Service) *HTTPClient {
 			return err
 		}
 
+		err = encryptMiddleware(req)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 

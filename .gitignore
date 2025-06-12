@@ -29,3 +29,6 @@ vendor/
 
 # Storage file
 cmd/server/storage.json
+
+# Keys
+*.pem
