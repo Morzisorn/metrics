@@ -44,8 +44,9 @@ func retryConditions(r *resty.Response, err error) bool {
 
 func retryHook(resp *resty.Response, err error) {
 	attempt := resp.Request.Attempt
-	if attempt-1 < len(retryDelays) {
-		delay := retryDelays[attempt-1]
+	cfg := config.GetService()
+	if attempt-1 < len(cfg.Config.RetryDelays) {
+		delay := cfg.Config.RetryDelays[attempt-1]
 		logger.Log.Info("Request to server error", zap.Int("Retry #", attempt))
 		time.Sleep(delay)
 	}

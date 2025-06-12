@@ -113,6 +113,7 @@ func GzipMiddleware() gin.HandlerFunc {
 		}
 	}
 }
+
 func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	if g.status == 0 {
 		g.status = http.StatusOK

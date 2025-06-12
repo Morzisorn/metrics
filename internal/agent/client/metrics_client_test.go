@@ -1,12 +1,6 @@
 package agent
 
-import (
-	"net/http"
-	"net/http/httptest"
-
-	"resty.dev/v3"
-)
-
+/*
 func setupTestServer() (*httptest.Server, *HTTPClient) {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/update/counter/PollCount/", func(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +23,7 @@ func setupTestServer() (*httptest.Server, *HTTPClient) {
 
 	return server, client
 }
+*/
 
 /*
 func TestSendMetrics(t *testing.T) {

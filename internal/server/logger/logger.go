@@ -60,6 +60,5 @@ func LoggerMiddleware() gin.HandlerFunc {
 				zap.String("duration", duration.String()),
 			)
 		}
-
 	}
 }

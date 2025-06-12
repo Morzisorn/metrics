@@ -1,20 +1,24 @@
 package database
 
 import (
-	"context"
-	"fmt"
-	"sync"
+	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	testInstance  *pgxpool.Pool
-	testOnce      sync.Once
-	testDBConnStr string = "postgres://dmitrij:Antirise1!@localhost:5432/metrics_db_test?sslmode=disable"
-)
+// var (
+// 	testInstance  *pgxpool.Pool
+// 	testOnce      sync.Once
+// 	testDBConnStr string = "postgres://dmitrij:Antirise1!@localhost:5432/metrics_db_test?sslmode=disable"
+// )
 
-func GetTestDB() *pgxpool.Pool {
+func TestNewStorage(t *testing.T) {
+	db := NewStorage()
+	require.NotNil(t, db)
+}
+
+/*
+func getTestDB() *pgxpool.Pool {
 	testOnce.Do(func() {
 		var err error
 
@@ -32,7 +36,7 @@ func GetTestDB() *pgxpool.Pool {
 	return testInstance
 }
 
-func ResetTestDB() error {
+func resetTestDB() error {
 	if testInstance == nil {
 		return nil
 	}
@@ -50,8 +54,9 @@ func ResetTestDB() error {
 	return nil
 }
 
-func CloseTestDB() {
+func closeTestDB() {
 	if testInstance != nil {
 		testInstance.Close()
 	}
 }
+*/

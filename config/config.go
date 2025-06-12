@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"go.uber.org/zap"
@@ -26,6 +27,7 @@ type AgentConfig struct {
 	PollInterval   float64
 	ReportInterval float64
 	RateLimit      int64
+	RetryDelays    []time.Duration
 }
 
 type ServerConfig struct {
@@ -59,8 +61,10 @@ func GetService(app ...string) *Service {
 	return instance
 }
 
+var getEnvPath = getEncFilePath
+
 func New(app string) (*Service, error) {
-	envPath := getEncFilePath()
+	envPath := getEnvPath()
 	if err := loadEnvFile(envPath); err != nil {
 		fmt.Printf("Load .env error: %v. Env path: %s\n", err, envPath)
 	}

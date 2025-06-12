@@ -13,9 +13,6 @@ import (
 )
 
 var (
-	//instanceStorage models.Storage
-	//onceStorage     sync.Once
-
 	instancePool *pgxpool.Pool
 	oncePool     sync.Once
 )
