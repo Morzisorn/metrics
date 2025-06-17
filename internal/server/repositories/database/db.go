@@ -17,6 +17,19 @@ var (
 	oncePool     sync.Once
 )
 
+type DBInterface interface {
+    PingDB() error
+    UpdateGauge(name string, value float64) error
+    UpdateCounter(name string, value float64) (float64, error)
+    UpdateCounters(metrics *map[string]float64) error
+    GetMetric(name string) (float64, bool)
+    GetMetrics() (*map[string]float64, error)
+    Close() error
+}
+
+// Проверяем на этапе компиляции, что DBStorage реализует интерфейс:
+var _ DBInterface = (*DBStorage)(nil)
+
 type DBStorage struct {
 	Pool *pgxpool.Pool
 	mu   sync.RWMutex

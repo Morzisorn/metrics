@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/morzisorn/metrics/config"
@@ -34,7 +37,19 @@ func RunAgent() error {
 	m := agent.Metrics{}
 	c := client.NewClient(Service)
 	logger.Log.Info("Running agent.", zap.String("Address: ", Service.Config.Addr))
+	idleConnsClosed := make(chan struct{})
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
 	for {
+		// select {
+		// case <-quit:
+		// 	shutdown(idleConnsClosed, c)
+		// 	break RunLoop
+		// default:
+		// }
+
 		if time.Since(now).Seconds() >= Service.Config.PollInterval {
 			now = time.Now()
 			err := m.PollMetrics()
@@ -57,14 +72,30 @@ func RunAgent() error {
 						return err
 					}
 				}
+				select {
+				case <-quit:
+					shutdown(idleConnsClosed, c)
+					<-idleConnsClosed
+					return nil
+				default:
+				}
 			}
 		}
 	}
 }
 
+func shutdown(idleConnsClosed chan struct{}, c *client.HTTPClient) {
+	logger.Log.Info("Shutdown agent")
+	c.Client.Close()
+	close(idleConnsClosed)
+}
+
 func main() {
 	config.PrintMetaInfo(buildVersion, buildDate, buildCommit)
-	var err error
+	err := logger.Init()
+	if err != nil {
+		fmt.Println(err)
+	}
 	Service = config.GetService("agent")
 	err = RunAgent()
 	if err != nil {
