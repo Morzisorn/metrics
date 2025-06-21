@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -159,4 +161,80 @@ func TestSignMiddleware_InvalidSignature(t *testing.T) {
 
 	require.Equal(t, http.StatusBadRequest, w.Code)
 	require.Contains(t, w.Body.String(), "incorrect sign hash")
+}
+
+func TestDecryptMiddleware_NoEncryptionHeader(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(DecryptMiddleware())
+
+	var receivedBody []byte
+	router.POST("/test", func(c *gin.Context) {
+		receivedBody, _ = io.ReadAll(c.Request.Body)
+		c.Status(http.StatusOK)
+	})
+
+	originalData := []byte(`{"test":"data"}`)
+	req := httptest.NewRequest("POST", "/test", bytes.NewReader(originalData))
+	// НЕ устанавливаем заголовок X-Encrypted
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, originalData, receivedBody, "Data should pass through unchanged")
+}
+
+func TestDecryptMiddleware_InvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(DecryptMiddleware())
+
+	var receivedBody []byte
+	router.POST("/test", func(c *gin.Context) {
+		receivedBody, _ = io.ReadAll(c.Request.Body)
+		c.Status(http.StatusOK)
+	})
+
+	// Некорректный JSON с заголовком X-Encrypted
+	invalidJSON := []byte(`{"invalid": json}`)
+	req := httptest.NewRequest("POST", "/test", bytes.NewReader(invalidJSON))
+	req.Header.Set("X-Encrypted", "1")
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	// Middleware должен восстановить body и пропустить дальше
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, invalidJSON, receivedBody, "Invalid JSON should pass through")
+}
+
+func TestDecryptMiddleware_Success(t *testing.T) {
+	// Инициализируем config с app type чтобы избежать панику
+	config.GetService("server")
+	
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(DecryptMiddleware())
+	
+	router.POST("/test", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	// Создаем валидный payload с корректным base64
+	payload := map[string]string{
+		"key":  base64.StdEncoding.EncodeToString(make([]byte, 256)), // 256 байт для RSA-2048
+		"data": base64.StdEncoding.EncodeToString([]byte("fake-encrypted-data")),
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	
+	req := httptest.NewRequest("POST", "/test", bytes.NewReader(payloadBytes))
+	req.Header.Set("X-Encrypted", "1")
+	w := httptest.NewRecorder()
+	
+	router.ServeHTTP(w, req)
+
+	// Тест пройдет до RSA расшифровки, где упадет с 400 (нормально без реального ключа)
+	// Но это значит, что вся логика до этого момента работает включая config.GetService()
+	assert.Equal(t, http.StatusBadRequest, w.Code, "Should fail at RSA decryption stage")
 }

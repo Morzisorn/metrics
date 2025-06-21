@@ -1,0 +1,14 @@
+{
+  "address": "localhost:8080",
+  "report_interval": 10,
+  "poll_interval": 2,
+  "rate_limit": 3,
+  "store_interval": 5,
+  "file_storage_path": "storage.json",
+  "restore": true,
+  "retry_delays": [1, 3, 5],
+  "database_dsn": "postgres://dmitrij:Antirise1!@localhost:5432/metrics_db?sslmode=disable",
+  "key": "x4gmo53dst",
+  "crypto_key": "/config/crypto_keys.pem",
+  "config": "config.json"
+}

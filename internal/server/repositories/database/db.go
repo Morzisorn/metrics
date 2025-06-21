@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/morzisorn/metrics/config"
 	"github.com/morzisorn/metrics/internal/server/logger"
@@ -17,8 +19,29 @@ var (
 	oncePool     sync.Once
 )
 
+type DBInterface interface {
+	PingDB() error
+	UpdateGauge(name string, value float64) error
+	UpdateCounter(name string, value float64) (float64, error)
+	UpdateCounters(metrics *map[string]float64) error
+	GetMetric(name string) (float64, bool)
+	GetMetrics() (*map[string]float64, error)
+	Close() error
+}
+
+type PoolInterface interface {
+	Ping(ctx context.Context) error
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	Close()
+}
+
+// Проверяем на этапе компиляции, что DBStorage реализует интерфейс:
+var _ DBInterface = (*DBStorage)(nil)
+
 type DBStorage struct {
-	Pool *pgxpool.Pool
+	Pool PoolInterface
 	mu   sync.RWMutex
 }
 

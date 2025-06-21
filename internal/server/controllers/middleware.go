@@ -2,7 +2,14 @@ package controllers
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -209,4 +216,83 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+func DecryptMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetHeader("X-Encrypted") != "1" {
+			c.Next()
+			return
+		}
+
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		var w struct {
+			Key  string `json:"key"`
+			Data string `json:"data"`
+		}
+		if err := json.Unmarshal(bodyBytes, &w); err != nil {
+			c.Request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			c.Next()
+			return
+		}
+		service := config.GetService()
+
+		encKey, err := base64.StdEncoding.DecodeString(w.Key)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		aesKey, err := rsa.DecryptOAEP(
+			sha256.New(),
+			rand.Reader,
+			service.Config.PrivateKey,
+			encKey,
+			nil,
+		)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		encData, err := base64.StdEncoding.DecodeString(w.Data)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		block, err := aes.NewCipher(aesKey)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		gcm, err := cipher.NewGCM(block)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		nonceSize := gcm.NonceSize()
+		if len(encData) < nonceSize {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		nonce, ciphertext := encData[:nonceSize], encData[nonceSize:]
+
+		plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+		if err != nil {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		c.Request.Body = io.NopCloser(bytes.NewReader(plaintext))
+		c.Request.Header.Del("X-Encrypted")
+		c.Next()
+	}
 }

@@ -12,6 +12,8 @@ func (c *Config) parseAgentFlags() {
 	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "poll interval")
 	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "report interval")
 	pflag.Int64VarP(&c.RateLimit, "rate_limit", "l", 3, "rate limit")
+	pflag.StringVarP(&c.CryptoKeyPath, "crypto-key", "", "", "crypto key")
+	pflag.StringVarP(&c.ConfigFile, "config", "c", "config.json", "config file name")
 
 	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
 		panic(err)
@@ -25,6 +27,8 @@ func (c *Config) parseServerFlags() error {
 	pflag.StringVarP(&c.FileStoragePath, "file", "f", "storage.json", "file storage path")
 	pflag.BoolVarP(&c.Restore, "restore", "r", true, "restore storage from file")
 	pflag.StringVarP(&c.DBConnStr, "dbstr", "d", "", "db connection string")
+	pflag.StringVarP(&c.CryptoKeyPath, "crypto-key", "", "", "crypto key")
+	pflag.StringVarP(&c.ConfigFile, "config", "c", "config.json", "config file name")
 
 	return pflag.CommandLine.Parse(os.Args[1:])
 }

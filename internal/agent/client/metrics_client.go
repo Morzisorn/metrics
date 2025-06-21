@@ -57,7 +57,6 @@ func (c *HTTPClient) metricSenderJob(chIn chan agent.Metric, wg *sync.WaitGroup)
 // SendMetricsByOne reads metrics from channel and manage sending them by one
 func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 	chIn := make(chan agent.Metric, len(m.Metrics))
-	defer close(chIn)
 
 	var wg sync.WaitGroup
 
@@ -65,6 +64,7 @@ func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 	c.runWorkers(chIn, &wg, int(rateLimit))
 
 	m.LoadMetricsToChan(chIn)
+	close(chIn)
 
 	wg.Wait()
 

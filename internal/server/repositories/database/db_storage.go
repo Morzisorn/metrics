@@ -26,7 +26,7 @@ var (
 	}
 )
 
-func PingDB(db *DBStorage) error {
+func (db *DBStorage) PingDB() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -34,7 +34,7 @@ func PingDB(db *DBStorage) error {
 }
 
 func (db *DBStorage) UpdateGauge(name string, value float64) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second) //CHANGE TO 3
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	db.mu.Lock()
@@ -195,8 +195,9 @@ func (db *DBStorage) WriteMetrics(metrics *map[string]float64) error {
 	return nil
 }
 
-func (db *DBStorage) Close() {
+func (db *DBStorage) Close() error {
 	db.Pool.Close()
+	return nil
 }
 
 func (db *DBStorage) retryQueryRow(ctx context.Context, query string, result interface{}, args ...interface{}) (interface{}, error) {

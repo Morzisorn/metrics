@@ -17,6 +17,7 @@ type Storage interface {
 	WriteMetrics(*map[string]float64) error
 	UpdateCounters(*map[string]float64) error
 	UpdateGauges(*map[string]float64) error
+	Close() error
 }
 
 func NewStorage(cfg config.Config) Storage {

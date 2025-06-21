@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,9 +19,11 @@ type Config struct {
 }
 
 type CommonConfig struct {
-	AppType string
-	Addr    string
-	Key     string
+	AppType       string
+	Addr          string
+	Key           string
+	CryptoKeyPath string
+	ConfigFile    string
 }
 
 type AgentConfig struct {
@@ -28,6 +31,7 @@ type AgentConfig struct {
 	ReportInterval float64
 	RateLimit      int64
 	RetryDelays    []time.Duration
+	PublicKey      *rsa.PublicKey
 }
 
 type ServerConfig struct {
@@ -36,6 +40,7 @@ type ServerConfig struct {
 	Restore         bool
 	DBConnStr       string
 	StorageType     string
+	PrivateKey      *rsa.PrivateKey
 }
 
 type Service struct {

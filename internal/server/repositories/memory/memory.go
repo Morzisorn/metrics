@@ -71,6 +71,11 @@ func (m *MemStorage) WriteMetrics(metrics *map[string]float64) error {
 	return nil
 }
 
+func (m *MemStorage) Close() error {
+	m.Reset()
+	return nil 
+}
+
 func (m *MemStorage) Reset() {
 	m.Metrics = make(map[string]float64)
 }

@@ -14,5 +14,5 @@ func NewHealthService(storage repositories.Storage) *HealthService {
 }
 
 func PingDB() error {
-	return database.PingDB(database.NewStorage())
+	return database.NewStorage().PingDB()
 }

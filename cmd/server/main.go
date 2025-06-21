@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"net/http"
 	_ "net/http/pprof"
 
 	"github.com/gin-contrib/pprof"
@@ -39,11 +45,12 @@ func createServer(
 	mc *controllers.MetricController,
 	pc *controllers.PagesController,
 	hc *controllers.HealthController,
-) *gin.Engine {
+) *http.Server {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
 	mux.Use(
 		logger.LoggerMiddleware(),
+		controllers.DecryptMiddleware(),
 		controllers.GzipMiddleware(),
 		controllers.SignMiddleware(),
 	)
@@ -54,7 +61,12 @@ func createServer(
 
 	pprof.Register(mux)
 
-	return mux
+	srv := &http.Server{
+		Addr:    cnfg.Config.Addr,
+		Handler: mux,
+	}
+
+	return srv
 }
 
 func registerMetricsRoutes(mux *gin.Engine, mc *controllers.MetricController) {
@@ -73,13 +85,39 @@ func registerHealthRoutes(mux *gin.Engine, hc *controllers.HealthController) {
 	mux.GET("/ping", hc.PingDB)
 }
 
-func runServer(mux *gin.Engine) error {
+func runServer(srv *http.Server, storage *repositories.Storage) {
 	if err := logger.Init(); err != nil {
-		return err
+		logger.Log.Fatal("Init logger error: ", zap.Error(err))
 	}
 	logger.Log.Info("Starting server on ", zap.String("address", cnfg.Config.Addr))
+	idleConnsClosed := make(chan struct{})
 
-	return mux.Run(cnfg.Config.Addr)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	go func() {
+		<-quit
+		shutdown(srv, idleConnsClosed, storage)
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Log.Fatal("listen: %s\n", zap.Error(err))
+	}
+
+	<-idleConnsClosed
+
+	logger.Log.Info("Server shutted down gracefully")
+}
+
+func shutdown(srv *http.Server, idleConnsClosed chan struct{}, storage *repositories.Storage) {
+	logger.Log.Info("Shutdown server")
+	
+	(*storage).Close()
+
+	if err := srv.Shutdown(context.Background()); err != nil {
+		logger.Log.Fatal("shutdown server error: %s\n", zap.Error(err))
+	}
+	close(idleConnsClosed)
 }
 
 func main() {
@@ -101,7 +139,7 @@ func main() {
 	pagesController := controllers.NewPagesController(pagesService)
 	healthController := controllers.NewHealthController(healthService)
 
-	mux := createServer(metricsController, pagesController, healthController)
+	srv := createServer(metricsController, pagesController, healthController)
 
 	if cnfg.Config.StoreInterval != 0 && cnfg.Config.DBConnStr == "" {
 		go func() {
@@ -111,7 +149,5 @@ func main() {
 		}()
 	}
 
-	if err := runServer(mux); err != nil {
-		logger.Log.Panic("Error running server", zap.Error(err))
-	}
+	runServer(srv, &storage)
 }

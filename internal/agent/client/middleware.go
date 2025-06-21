@@ -3,8 +3,15 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
@@ -92,4 +99,62 @@ func getByteBody(r *resty.Request) ([]byte, error) {
 		}
 	}
 	return jsonBody, nil
+}
+
+func encryptMiddleware(r *resty.Request) error {
+	service := config.GetService()
+	if service.Config.PublicKey == nil {
+		return nil
+	}
+
+	body, err := getByteBody(r)
+	if err != nil {
+		return err
+	}
+
+	aesKey := make([]byte, 32)
+	if _, err := rand.Read(aesKey); err != nil {
+		return err
+	}
+
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, nonce)
+	if err != nil {
+		return err
+	}
+	ciphertext := gcm.Seal(nil, nonce, body, nil)
+
+	encKeyBytes, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, service.Config.PublicKey, aesKey, nil)
+	if err != nil {
+		return err
+	}
+
+	payload := struct {
+		Key  string `json:"key"`
+		Data string `json:"data"`
+	}{
+		Key:  base64.StdEncoding.EncodeToString(encKeyBytes),
+		Data: base64.StdEncoding.EncodeToString(append(nonce, ciphertext...)),
+	}
+
+	wrapped, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	r.SetBody(wrapped)
+	//r.SetHeader("Content-Type", "application/json")
+	r.SetHeader("X-Encrypted", "1")
+
+	return nil 
 }
