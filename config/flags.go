@@ -29,6 +29,7 @@ func (c *Config) parseServerFlags() error {
 	pflag.StringVarP(&c.DBConnStr, "dbstr", "d", "", "db connection string")
 	pflag.StringVarP(&c.CryptoKeyPath, "crypto-key", "", "", "crypto key")
 	pflag.StringVarP(&c.ConfigFile, "config", "c", "config.json", "config file name")
+	pflag.StringVarP(&c.TrustedSubnet, "trusted-subnet", "t", "127.0.0.0/8", "trusted subnet")
 
 	return pflag.CommandLine.Parse(os.Args[1:])
 }

@@ -41,6 +41,7 @@ type ServerConfig struct {
 	DBConnStr       string
 	StorageType     string
 	PrivateKey      *rsa.PrivateKey
+	TrustedSubnet	string
 }
 
 type Service struct {

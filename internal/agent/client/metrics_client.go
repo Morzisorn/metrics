@@ -12,9 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// MetricsClient is used to send single metric to server
+// MetricsClient is used to send single metric or batch to server
 type MetricsClient interface {
-	SendMetric(mType string, name string, value float64) error
+	SendMetric(m *agent.Metric) error
+	SendMetricsBatch(m *agent.Metrics) error
 }
 
 // SendMetric sends single metric to server
@@ -29,6 +30,7 @@ func (c *HTTPClient) SendMetric(m *agent.Metric) error {
 	resp, err := c.Client.R().
 		SetBody(body).
 		SetHeader("Content-Type", "application/json").
+		SetHeader("X-Real-IP", config.GetService().Config.Addr).
 		Post(url)
 	if err != nil {
 		return err
@@ -101,6 +103,7 @@ func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
 	resp, err := c.Client.R().
 		SetBody(body).
 		SetHeader("Content-Type", "application/json").
+		SetHeader("X-Real-IP", config.GetService().Config.Addr).
 		Post(url)
 	if err != nil {
 		return err

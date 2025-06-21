@@ -155,7 +155,8 @@ func TestRunServer_Success(t *testing.T) {
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		// Отправляем SIGTERM самому процессу (это подхватит signal.Notify в runServer)
-		process.Signal(syscall.SIGTERM)
+		err := process.Signal(syscall.SIGTERM)
+		require.NoError(t, err)
 	}()
 
 	// Ждем завершения runServer
@@ -203,7 +204,7 @@ func TestShutdown_Success(t *testing.T) {
 
 	// Запускаем shutdown в горутине
 	go func() {
-		shutdown(srv, idleConnsClosed, &storage)
+		shutdown(context.Background(),srv, idleConnsClosed, &storage)
 	}()
 
 	// Ждем завершения shutdown
@@ -262,7 +263,7 @@ func TestShutdown_GracefulServerStop(t *testing.T) {
 	// Выполняем graceful shutdown
 	shutdownComplete := make(chan struct{})
 	go func() {
-		shutdown(srv, idleConnsClosed, &storage)
+		shutdown(context.Background(), srv, idleConnsClosed, &storage)
 		close(shutdownComplete)
 	}()
 

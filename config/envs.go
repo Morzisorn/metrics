@@ -109,7 +109,7 @@ func (c *Config) parseAgentEnvs() {
 		if err != nil {
 			logger.Log.Panic("get crypto key from file error ", zap.Error(err))
 		}
-		c.PublicKey, err = getKeyFromPem[*rsa.PublicKey](pemData)
+		c.PublicKey, err = getPublicKeyFromPem(pemData)
 		if err != nil {
 			logger.Log.Panic("parse public key error ", zap.Error(err))
 		}
@@ -187,10 +187,17 @@ func (c *Config) parseServerEnvs() {
 		if err != nil {
 			logger.Log.Panic("get crypto key from file error ", zap.Error(err))
 		}
-		c.PrivateKey, err = getKeyFromPem[*rsa.PrivateKey](pemData)
+		c.PrivateKey, err = getPrivateKeyFromPem(pemData)
 		if err != nil {
 			logger.Log.Panic("parse private key error ", zap.Error(err))
 		}
+	}
+
+	t, err := getEnvString("TRUSTED_SUBNET")
+	if err == nil {
+		c.TrustedSubnet = t
+	} else if c.TrustedSubnet == "" && configMap != nil && configMap["trusted_subnet"].(string) != "" {
+		c.TrustedSubnet = configMap["trusted_subnet"].(string)
 	}
 }
 
@@ -239,8 +246,8 @@ func parseRetryDelays(s string) ([]time.Duration, error) {
 	return res, nil
 }
 
-func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error) {
-	var zero T
+func getPublicKeyFromPem(pemData string) (*rsa.PublicKey, error) {
+	var zero *rsa.PublicKey
 	rest := []byte(pemData)
 	for {
 		block, remaining := pem.Decode(rest)
@@ -253,11 +260,24 @@ func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error
 			if err != nil {
 				return nil, err
 			}
-			pub, ok := pubIfc.(T)
+			pub, ok := pubIfc.(*rsa.PublicKey)
 			if !ok {
 				return nil, fmt.Errorf("not RSA public key")
 			}
 			return pub, nil
+		}
+
+		rest = remaining
+	}
+}
+
+func getPrivateKeyFromPem(pemData string) (*rsa.PrivateKey, error) {
+	var zero *rsa.PrivateKey
+	rest := []byte(pemData)
+	for {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			return nil, fmt.Errorf("no PUBLIC KEY block found")
 		}
 
 		if _, isPriv := any(zero).(*rsa.PrivateKey); isPriv && block.Type == "PRIVATE KEY" {
@@ -265,7 +285,7 @@ func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error
 			if err != nil {
 				return nil, err
 			}
-			priv, ok := privIfc.(T)
+			priv, ok := privIfc.(*rsa.PrivateKey)
 			if !ok {
 				return nil, fmt.Errorf("not RSA private key")
 			}

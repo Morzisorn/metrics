@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -97,7 +98,9 @@ func runServer(srv *http.Server, storage *repositories.Storage) {
 
 	go func() {
 		<-quit
-		shutdown(srv, idleConnsClosed, storage)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		shutdown(ctx, srv, idleConnsClosed, storage)
 	}()
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -109,12 +112,12 @@ func runServer(srv *http.Server, storage *repositories.Storage) {
 	logger.Log.Info("Server shutted down gracefully")
 }
 
-func shutdown(srv *http.Server, idleConnsClosed chan struct{}, storage *repositories.Storage) {
+func shutdown(ctx context.Context, srv *http.Server, idleConnsClosed chan struct{}, storage *repositories.Storage) {
 	logger.Log.Info("Shutdown server")
-	
+
 	(*storage).Close()
 
-	if err := srv.Shutdown(context.Background()); err != nil {
+	if err := srv.Shutdown(ctx); err != nil {
 		logger.Log.Fatal("shutdown server error: %s\n", zap.Error(err))
 	}
 	close(idleConnsClosed)
