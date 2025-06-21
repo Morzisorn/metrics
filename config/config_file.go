@@ -3,16 +3,10 @@ package config
 import (
 	"encoding/json"
 	"os"
-	"path/filepath"
 )
 
-func getConfigMap(file string) (map[string]interface{}, error) {
-	root, err := GetProjectRoot()
-	if err != nil {
-		return nil, err
-	}
-
-	j, err := os.ReadFile(filepath.Join(root, "config", file))
+func getConfigMap(configPath string) (map[string]interface{}, error) {
+	j, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

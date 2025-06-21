@@ -127,7 +127,13 @@ func (c *Config) parseServerEnvs() {
 	configFile, err := getEnvString("CONFIG")
 	if err == nil && configFile != "" {
 		c.ConfigFile = configFile
-		configMap, err = getConfigMap(configFile)
+		root, err := GetProjectRoot()
+		if err != nil {
+			logger.Log.Panic("get project root error ", zap.Error(err))
+		}
+		configPath := filepath.Join(root, "config", configFile)
+
+		configMap, err = getConfigMap(configPath)
 		if err != nil {
 			logger.Log.Panic("parse json config error ", zap.Error(err))
 		}
