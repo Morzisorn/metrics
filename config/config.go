@@ -24,6 +24,7 @@ type CommonConfig struct {
 	Key           string
 	CryptoKeyPath string
 	ConfigFile    string
+	Protocol  string
 }
 
 type AgentConfig struct {
@@ -41,7 +42,7 @@ type ServerConfig struct {
 	DBConnStr       string
 	StorageType     string
 	PrivateKey      *rsa.PrivateKey
-	TrustedSubnet	string
+	TrustedSubnet   string
 }
 
 type Service struct {

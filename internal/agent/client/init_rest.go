@@ -14,8 +14,8 @@ type HTTPClient struct {
 	retryDelays []time.Duration
 }
 
-// NewClient creates new pointer to HTTPClient based on config
-func NewClient(s *config.Service) *HTTPClient {
+// NewHTTPClient creates new pointer to HTTPClient based on config
+func NewHTTPClient(s *config.Service) *HTTPClient {
 	c := HTTPClient{
 		BaseURL: s.Config.Addr,
 		Client: resty.New().

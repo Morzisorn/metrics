@@ -9,6 +9,6 @@ import (
 
 func TestNewClient(t *testing.T) {
 	cfg := config.GetService("agent")
-	client := NewClient(cfg)
+	client := NewHTTPClient(cfg)
 	require.NotNil(t, client)
 }

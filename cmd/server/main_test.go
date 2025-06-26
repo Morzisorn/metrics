@@ -15,7 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/config"
-	"github.com/morzisorn/metrics/internal/server/controllers"
+	"github.com/morzisorn/metrics/internal/server/controllers/rest"
 	"github.com/morzisorn/metrics/internal/server/repositories"
 	"github.com/morzisorn/metrics/internal/server/services/health"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
@@ -57,9 +57,9 @@ func TestCreateServer(t *testing.T) {
 	pagesService := pages.NewPagesService(metricsService)
 	healthService := health.NewHealthService(storage)
 
-	metricsController := controllers.NewMetricController(metricsService)
-	pagesController := controllers.NewPagesController(pagesService)
-	healthController := controllers.NewHealthController(healthService)
+	metricsController := rest.NewMetricController(metricsService)
+	pagesController := rest.NewPagesController(pagesService)
+	healthController := rest.NewHealthController(healthService)
 
 	router := createServer(metricsController, pagesController, healthController)
 
@@ -123,7 +123,7 @@ func TestRunServer_Success(t *testing.T) {
 		close(runServerStarted)
 
 		// Вызываем настоящую функцию runServer
-		runServer(srv, &storage)
+		runHTTPServer(srv, &storage)
 	}()
 
 	// Ждем запуска runServer

@@ -34,15 +34,9 @@ func (c *Config) parseEnv(app string) error {
 func (c *Config) parseAgentEnvs() {
 	c.parseAgentFlags()
 
-	var configMap map[string]interface{}
-
-	configFile, err := getEnvString("CONFIG")
-	if err == nil && configFile != "" {
-		c.ConfigFile = configFile
-		configMap, err = getConfigMap(configFile)
-		if err != nil {
-			logger.Log.Panic("parse json config error ", zap.Error(err))
-		}
+	configMap, err := getConfigMap(c)
+	if err != nil {
+		logger.Log.Panic("get json config error ", zap.Error(err))
 	}
 
 	addr := os.Getenv("ADDRESS")
@@ -114,6 +108,13 @@ func (c *Config) parseAgentEnvs() {
 			logger.Log.Panic("parse public key error ", zap.Error(err))
 		}
 	}
+
+	p, err := getEnvString("PROTOCOL")
+	if err == nil {
+		c.Protocol = p
+	} else if c.Protocol == "" && configMap != nil && configMap["protocol"].(string) != "" {
+		c.Protocol = configMap["protocol"].(string)
+	}
 }
 
 func (c *Config) parseServerEnvs() {
@@ -122,21 +123,9 @@ func (c *Config) parseServerEnvs() {
 		logger.Log.Panic("parse flags error ", zap.Error(err))
 	}
 
-	var configMap map[string]interface{}
-
-	configFile, err := getEnvString("CONFIG")
-	if err == nil && configFile != "" {
-		c.ConfigFile = configFile
-		root, err := GetProjectRoot()
-		if err != nil {
-			logger.Log.Panic("get project root error ", zap.Error(err))
-		}
-		configPath := filepath.Join(root, "config", configFile)
-
-		configMap, err = getConfigMap(configPath)
-		if err != nil {
-			logger.Log.Panic("parse json config error ", zap.Error(err))
-		}
+	configMap, err := getConfigMap(c)
+	if err != nil {
+		logger.Log.Panic("get json config error ", zap.Error(err))
 	}
 
 	addr := os.Getenv("ADDRESS")
@@ -204,6 +193,13 @@ func (c *Config) parseServerEnvs() {
 		c.TrustedSubnet = t
 	} else if c.TrustedSubnet == "" && configMap != nil && configMap["trusted_subnet"].(string) != "" {
 		c.TrustedSubnet = configMap["trusted_subnet"].(string)
+	}
+
+	p, err := getEnvString("PROTOCOL")
+	if err == nil {
+		c.Protocol = p
+	} else if c.Protocol == "" && configMap != nil && configMap["protocol"].(string) != "" {
+		c.Protocol = configMap["protocol"].(string)
 	}
 }
 

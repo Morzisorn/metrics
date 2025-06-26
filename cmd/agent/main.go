@@ -35,7 +35,7 @@ func RunAgent() error {
 	now := time.Now()
 	lastReport := time.Now()
 	m := agent.Metrics{}
-	c := client.NewClient(Service)
+	c := client.NewMetricClient(Service)
 	logger.Log.Info("Running agent.", zap.String("Address: ", Service.Config.Addr))
 	idleConnsClosed := make(chan struct{})
 
@@ -43,13 +43,6 @@ func RunAgent() error {
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	for {
-		// select {
-		// case <-quit:
-		// 	shutdown(idleConnsClosed, c)
-		// 	break RunLoop
-		// default:
-		// }
-
 		if time.Since(now).Seconds() >= Service.Config.PollInterval {
 			now = time.Now()
 			err := m.PollMetrics()
@@ -60,17 +53,17 @@ func RunAgent() error {
 			if time.Since(lastReport).Seconds() >= Service.Config.ReportInterval {
 				if len(m.Metrics) > 0 {
 					lastReport = time.Now()
-					err := c.SendMetricsByOne(&m)
+					err := client.SendMetricsByOne(c, &m)
 					if err != nil {
 						return err
 					}
 
 					time.Sleep(1 * time.Second)
 
-					err = c.SendMetricsBatch(&m)
-					if err != nil {
-						return err
-					}
+					// err = c.SendMetricsBatch(&m)
+					// if err != nil {
+					// 	return err
+					// }
 				}
 				select {
 				case <-quit:
@@ -84,9 +77,9 @@ func RunAgent() error {
 	}
 }
 
-func shutdown(idleConnsClosed chan struct{}, c *client.HTTPClient) {
+func shutdown(idleConnsClosed chan struct{}, c client.MetricsClient) {
 	logger.Log.Info("Shutdown agent")
-	c.Client.Close()
+	c.Close()
 	close(idleConnsClosed)
 }
 

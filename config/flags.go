@@ -14,6 +14,7 @@ func (c *Config) parseAgentFlags() {
 	pflag.Int64VarP(&c.RateLimit, "rate_limit", "l", 3, "rate limit")
 	pflag.StringVarP(&c.CryptoKeyPath, "crypto-key", "", "", "crypto key")
 	pflag.StringVarP(&c.ConfigFile, "config", "c", "config.json", "config file name")
+	pflag.StringVarP(&c.Protocol, "protocol", "", "http", "protocol type: http or grpc")
 
 	if err := pflag.CommandLine.Parse(os.Args[1:]); err != nil {
 		panic(err)
@@ -30,6 +31,7 @@ func (c *Config) parseServerFlags() error {
 	pflag.StringVarP(&c.CryptoKeyPath, "crypto-key", "", "", "crypto key")
 	pflag.StringVarP(&c.ConfigFile, "config", "c", "config.json", "config file name")
 	pflag.StringVarP(&c.TrustedSubnet, "trusted-subnet", "t", "127.0.0.0/8", "trusted subnet")
+	pflag.StringVarP(&c.Protocol, "protocol", "", "http", "protocol: http or grpc")
 
 	return pflag.CommandLine.Parse(os.Args[1:])
 }

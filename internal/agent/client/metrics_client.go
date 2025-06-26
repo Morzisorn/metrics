@@ -1,9 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"sync"
 
 	"github.com/morzisorn/metrics/config"
@@ -16,36 +13,25 @@ import (
 type MetricsClient interface {
 	SendMetric(m *agent.Metric) error
 	SendMetricsBatch(m *agent.Metrics) error
+	Close()
 }
 
-// SendMetric sends single metric to server
-func (c *HTTPClient) SendMetric(m *agent.Metric) error {
-	url := fmt.Sprintf("http://%s/update/", c.BaseURL)
-
-	body, err := json.Marshal(m)
-	if err != nil {
-		return err
+func NewMetricClient(cnfg *config.Service) MetricsClient {
+	switch cnfg.Config.Protocol {
+	case "http":
+		return NewHTTPClient(cnfg)
+	case "grpc":
+		return NewGRPCClient(cnfg)
+	default:
+		logger.Log.Panic("Create new metric client error: incorrect protocol")
+		return nil
 	}
-
-	resp, err := c.Client.R().
-		SetBody(body).
-		SetHeader("Content-Type", "application/json").
-		SetHeader("X-Real-IP", config.GetService().Config.Addr).
-		Post(url)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
-	}
-
-	return nil
 }
 
-func (c *HTTPClient) metricSenderJob(chIn chan agent.Metric, wg *sync.WaitGroup) {
+func metricSenderJob(client MetricsClient, chIn chan agent.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for metric := range chIn {
-		err := c.SendMetric(&metric)
+		err := client.SendMetric(&metric)
 		if err != nil {
 			logger.Log.Error("Send metric error. ",
 				zap.String("Metric: ", metric.ID),
@@ -57,13 +43,13 @@ func (c *HTTPClient) metricSenderJob(chIn chan agent.Metric, wg *sync.WaitGroup)
 }
 
 // SendMetricsByOne reads metrics from channel and manage sending them by one
-func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
+func SendMetricsByOne(client MetricsClient, m *agent.Metrics) error {
 	chIn := make(chan agent.Metric, len(m.Metrics))
 
 	var wg sync.WaitGroup
 
 	rateLimit := config.GetService().Config.RateLimit
-	c.runWorkers(chIn, &wg, int(rateLimit))
+	runWorkers(client,chIn, &wg, int(rateLimit))
 
 	m.LoadMetricsToChan(chIn)
 	close(chIn)
@@ -75,44 +61,9 @@ func (c *HTTPClient) SendMetricsByOne(m *agent.Metrics) error {
 	return nil
 }
 
-func (c *HTTPClient) runWorkers(chIn chan agent.Metric, wg *sync.WaitGroup, rateLimit int) {
+func runWorkers(client MetricsClient, chIn chan agent.Metric, wg *sync.WaitGroup, rateLimit int) {
 	for w := 0; w < rateLimit; w++ {
 		wg.Add(1)
-		go c.metricSenderJob(chIn, wg)
+		go metricSenderJob(client,chIn, wg)
 	}
-}
-
-// SendMetricsBatch sends all slice of metrics in one request
-func (c *HTTPClient) SendMetricsBatch(m *agent.Metrics) error {
-	url := fmt.Sprintf("http://%s/updates/", c.BaseURL)
-
-	slice := make([]agent.Metric, len(m.Metrics))
-	var i int
-	m.Mu.RLock()
-	for _, metric := range m.Metrics {
-		slice[i] = metric
-		i++
-	}
-	m.Mu.RUnlock()
-
-	body, err := json.Marshal(slice)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.Client.R().
-		SetBody(body).
-		SetHeader("Content-Type", "application/json").
-		SetHeader("X-Real-IP", config.GetService().Config.Addr).
-		Post(url)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("unexpected status code %d", resp.StatusCode())
-	}
-
-	m.ResetCounter()
-
-	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,13 +10,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	"net/http"
 	_ "net/http/pprof"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/morzisorn/metrics/config"
-	"github.com/morzisorn/metrics/internal/server/controllers"
+	"github.com/morzisorn/metrics/internal/server/controllers/grpc_ctrl"
+	pb "github.com/morzisorn/metrics/internal/proto"
+	"github.com/morzisorn/metrics/internal/server/controllers/rest"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/repositories"
 	"github.com/morzisorn/metrics/internal/server/services/health"
@@ -43,17 +47,17 @@ var (
 )
 
 func createServer(
-	mc *controllers.MetricController,
-	pc *controllers.PagesController,
-	hc *controllers.HealthController,
+	mc *rest.MetricController,
+	pc *rest.PagesController,
+	hc *rest.HealthController,
 ) *http.Server {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
 	mux.Use(
 		logger.LoggerMiddleware(),
-		controllers.DecryptMiddleware(),
-		controllers.GzipMiddleware(),
-		controllers.SignMiddleware(),
+		rest.DecryptMiddleware(),
+		rest.GzipMiddleware(),
+		rest.SignMiddleware(),
 	)
 
 	registerMetricsRoutes(mux, mc)
@@ -70,7 +74,7 @@ func createServer(
 	return srv
 }
 
-func registerMetricsRoutes(mux *gin.Engine, mc *controllers.MetricController) {
+func registerMetricsRoutes(mux *gin.Engine, mc *rest.MetricController) {
 	mux.POST("/update/:type/:metric/:value", mc.UpdateMetricParams)
 	mux.POST("/update/", mc.UpdateMetricBody)
 	mux.POST("/updates/", mc.UpdateMetrics)
@@ -78,18 +82,15 @@ func registerMetricsRoutes(mux *gin.Engine, mc *controllers.MetricController) {
 	mux.POST("/value/", mc.GetMetricBody)
 }
 
-func registerPagesRoutes(mux *gin.Engine, pc *controllers.PagesController) {
+func registerPagesRoutes(mux *gin.Engine, pc *rest.PagesController) {
 	mux.GET("/", pc.GetMetricsPage)
 }
 
-func registerHealthRoutes(mux *gin.Engine, hc *controllers.HealthController) {
+func registerHealthRoutes(mux *gin.Engine, hc *rest.HealthController) {
 	mux.GET("/ping", hc.PingDB)
 }
 
-func runServer(srv *http.Server, storage *repositories.Storage) {
-	if err := logger.Init(); err != nil {
-		logger.Log.Fatal("Init logger error: ", zap.Error(err))
-	}
+func runHTTPServer(srv *http.Server, storage *repositories.Storage) {
 	logger.Log.Info("Starting server on ", zap.String("address", cnfg.Config.Addr))
 	idleConnsClosed := make(chan struct{})
 
@@ -124,6 +125,10 @@ func shutdown(ctx context.Context, srv *http.Server, idleConnsClosed chan struct
 }
 
 func main() {
+	if err := logger.Init(); err != nil {
+		logger.Log.Fatal("Init logger error: ", zap.Error(err))
+	}
+
 	config.PrintMetaInfo(buildVersion, buildDate, buildCommit)
 	cnfg = config.GetService("server")
 
@@ -138,19 +143,49 @@ func main() {
 		}
 	}
 
-	metricsController := controllers.NewMetricController(metricsService)
-	pagesController := controllers.NewPagesController(pagesService)
-	healthController := controllers.NewHealthController(healthService)
+	switch cnfg.Config.Protocol {
+	case "http":
+		createAnRunHTTPServer(metricsService, pagesService, healthService, &storage)
+	case "grpc":
+		createAndRunGRPCServer(metricsService, pagesService, healthService, &storage)
+	default:
+		createAnRunHTTPServer(metricsService, pagesService, healthService, &storage)
+	}
+
+}
+
+func createAnRunHTTPServer(ms *metrics.MetricService, ps *pages.PagesService, hs *health.HealthService, storage *repositories.Storage) {
+	metricsController := rest.NewMetricController(ms)
+	pagesController := rest.NewPagesController(ps)
+	healthController := rest.NewHealthController(hs)
 
 	srv := createServer(metricsController, pagesController, healthController)
 
 	if cnfg.Config.StoreInterval != 0 && cnfg.Config.DBConnStr == "" {
 		go func() {
-			if err := metricsService.SaveMetrics(); err != nil {
+			if err := ms.SaveMetrics(); err != nil {
 				logger.Log.Panic("Error saving metrics", zap.Error(err))
 			}
 		}()
 	}
 
-	runServer(srv, &storage)
+	runHTTPServer(srv, storage)
+}
+
+func createAndRunGRPCServer(ms *metrics.MetricService, ps *pages.PagesService, hs *health.HealthService, storage *repositories.Storage) {
+	metricController := grpc_ctrl.NewMetricController(ms)
+	//cnfg := config.GetService()
+	listen, err := net.Listen("tcp", "127.0.0.1:8080")
+	if err != nil {
+		logger.Log.Fatal("create listener error", zap.Error(err))
+	}
+
+	s := grpc.NewServer()
+	pb.RegisterMetricControllerServer(s, metricController)
+
+	logger.Log.Info("Run grpc server")
+	
+	if err := s.Serve(listen); err != nil {
+		logger.Log.Fatal("Failed to run grpc server", zap.Error(err))
+	}
 }
