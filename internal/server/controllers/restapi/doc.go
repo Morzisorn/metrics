@@ -1,3 +1,3 @@
 // Package controllers contains metric, pages and health controllers
 // and middlewares.
-package rest
+package restapi

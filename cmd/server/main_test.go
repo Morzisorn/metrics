@@ -15,7 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/morzisorn/metrics/config"
-	"github.com/morzisorn/metrics/internal/server/controllers/rest"
+	"github.com/morzisorn/metrics/internal/server/controllers/restapi"
 	"github.com/morzisorn/metrics/internal/server/repositories"
 	"github.com/morzisorn/metrics/internal/server/services/health"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
@@ -57,9 +57,9 @@ func TestCreateServer(t *testing.T) {
 	pagesService := pages.NewPagesService(metricsService)
 	healthService := health.NewHealthService(storage)
 
-	metricsController := rest.NewMetricController(metricsService)
-	pagesController := rest.NewPagesController(pagesService)
-	healthController := rest.NewHealthController(healthService)
+	metricsController := restapi.NewMetricController(metricsService)
+	pagesController := restapi.NewPagesController(pagesService)
+	healthController := restapi.NewHealthController(healthService)
 
 	router := createServer(metricsController, pagesController, healthController)
 

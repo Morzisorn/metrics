@@ -17,9 +17,9 @@ import (
 
 	"github.com/gin-contrib/pprof"
 	"github.com/morzisorn/metrics/config"
-	"github.com/morzisorn/metrics/internal/server/controllers/grpc_ctrl"
+	"github.com/morzisorn/metrics/internal/server/controllers/grpcapi"
 	pb "github.com/morzisorn/metrics/internal/proto"
-	"github.com/morzisorn/metrics/internal/server/controllers/rest"
+	"github.com/morzisorn/metrics/internal/server/controllers/restapi"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/repositories"
 	"github.com/morzisorn/metrics/internal/server/services/health"
@@ -47,17 +47,17 @@ var (
 )
 
 func createServer(
-	mc *rest.MetricController,
-	pc *rest.PagesController,
-	hc *rest.HealthController,
+	mc *restapi.MetricController,
+	pc *restapi.PagesController,
+	hc *restapi.HealthController,
 ) *http.Server {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.Default()
 	mux.Use(
 		logger.LoggerMiddleware(),
-		rest.DecryptMiddleware(),
-		rest.GzipMiddleware(),
-		rest.SignMiddleware(),
+		restapi.DecryptMiddleware(),
+		restapi.GzipMiddleware(),
+		restapi.SignMiddleware(),
 	)
 
 	if mc != nil {
@@ -76,7 +76,7 @@ func createServer(
 	return srv
 }
 
-func registerMetricsRoutes(mux *gin.Engine, mc *rest.MetricController) {
+func registerMetricsRoutes(mux *gin.Engine, mc *restapi.MetricController) {
 	mux.POST("/update/:type/:metric/:value", mc.UpdateMetricParams)
 	mux.POST("/update/", mc.UpdateMetricBody)
 	mux.POST("/updates/", mc.UpdateMetrics)
@@ -84,11 +84,11 @@ func registerMetricsRoutes(mux *gin.Engine, mc *rest.MetricController) {
 	mux.POST("/value/", mc.GetMetricBody)
 }
 
-func registerPagesRoutes(mux *gin.Engine, pc *rest.PagesController) {
+func registerPagesRoutes(mux *gin.Engine, pc *restapi.PagesController) {
 	mux.GET("/", pc.GetMetricsPage)
 }
 
-func registerHealthRoutes(mux *gin.Engine, hc *rest.HealthController) {
+func registerHealthRoutes(mux *gin.Engine, hc *restapi.HealthController) {
 	mux.GET("/ping", hc.PingDB)
 }
 
@@ -158,13 +158,13 @@ func main() {
 }
 
 func createAnRunHTTPServer(ms *metrics.MetricService, ps *pages.PagesService, hs *health.HealthService, storage *repositories.Storage) {
-	var metricsController *rest.MetricController
+	var metricsController *restapi.MetricController
 	if ms != nil {
-		metricsController = rest.NewMetricController(ms)
+		metricsController = restapi.NewMetricController(ms)
 	}
 
-	pagesController := rest.NewPagesController(ps)
-	healthController := rest.NewHealthController(hs)
+	pagesController := restapi.NewPagesController(ps)
+	healthController := restapi.NewHealthController(hs)
 
 	srv := createServer(metricsController, pagesController, healthController)
 
@@ -180,7 +180,7 @@ func createAnRunHTTPServer(ms *metrics.MetricService, ps *pages.PagesService, hs
 }
 
 func createAndRunGRPCServer(ms *metrics.MetricService) {
-	metricController := grpc_ctrl.NewMetricController(ms)
+	metricController := grpcapi.NewMetricController(ms)
 	cnfg := config.GetService()
 	listen, err := net.Listen("tcp", cnfg.Config.Addr)
 	if err != nil {
