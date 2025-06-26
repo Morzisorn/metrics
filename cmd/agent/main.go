@@ -60,10 +60,10 @@ func RunAgent() error {
 
 					time.Sleep(1 * time.Second)
 
-					// err = c.SendMetricsBatch(&m)
-					// if err != nil {
-					// 	return err
-					// }
+					err = c.SendMetricsBatch(&m)
+					if err != nil {
+						return err
+					}
 				}
 				select {
 				case <-quit:

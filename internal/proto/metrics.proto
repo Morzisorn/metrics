@@ -43,6 +43,6 @@ message GetMetricResponse {
 
 service MetricController {
   rpc UpdateMetric(UpdateMetricRequest) returns (UpdateMetricResponse);
-  rpc UpdateMetrics(UpdateMetricRequest) returns (UpdateMetricsResponse);
+  rpc UpdateMetrics(UpdateMetricsRequest) returns (UpdateMetricsResponse);
   rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
 }

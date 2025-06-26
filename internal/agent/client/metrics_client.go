@@ -49,7 +49,7 @@ func SendMetricsByOne(client MetricsClient, m *agent.Metrics) error {
 	var wg sync.WaitGroup
 
 	rateLimit := config.GetService().Config.RateLimit
-	runWorkers(client,chIn, &wg, int(rateLimit))
+	runWorkers(client, chIn, &wg, int(rateLimit))
 
 	m.LoadMetricsToChan(chIn)
 	close(chIn)
@@ -64,6 +64,6 @@ func SendMetricsByOne(client MetricsClient, m *agent.Metrics) error {
 func runWorkers(client MetricsClient, chIn chan agent.Metric, wg *sync.WaitGroup, rateLimit int) {
 	for w := 0; w < rateLimit; w++ {
 		wg.Add(1)
-		go metricSenderJob(client,chIn, wg)
+		go metricSenderJob(client, chIn, wg)
 	}
 }

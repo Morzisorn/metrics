@@ -60,7 +60,9 @@ func createServer(
 		rest.SignMiddleware(),
 	)
 
-	registerMetricsRoutes(mux, mc)
+	if mc != nil {
+		registerMetricsRoutes(mux, mc)
+	}
 	registerPagesRoutes(mux, pc)
 	registerHealthRoutes(mux, hc)
 
@@ -147,7 +149,8 @@ func main() {
 	case "http":
 		createAnRunHTTPServer(metricsService, pagesService, healthService, &storage)
 	case "grpc":
-		createAndRunGRPCServer(metricsService, pagesService, healthService, &storage)
+		createAnRunHTTPServer(nil, pagesService, healthService, &storage)
+		createAndRunGRPCServer(metricsService)
 	default:
 		createAnRunHTTPServer(metricsService, pagesService, healthService, &storage)
 	}
@@ -155,7 +158,11 @@ func main() {
 }
 
 func createAnRunHTTPServer(ms *metrics.MetricService, ps *pages.PagesService, hs *health.HealthService, storage *repositories.Storage) {
-	metricsController := rest.NewMetricController(ms)
+	var metricsController *rest.MetricController
+	if ms != nil {
+		metricsController = rest.NewMetricController(ms)
+	}
+
 	pagesController := rest.NewPagesController(ps)
 	healthController := rest.NewHealthController(hs)
 
@@ -172,10 +179,10 @@ func createAnRunHTTPServer(ms *metrics.MetricService, ps *pages.PagesService, hs
 	runHTTPServer(srv, storage)
 }
 
-func createAndRunGRPCServer(ms *metrics.MetricService, ps *pages.PagesService, hs *health.HealthService, storage *repositories.Storage) {
+func createAndRunGRPCServer(ms *metrics.MetricService) {
 	metricController := grpc_ctrl.NewMetricController(ms)
-	//cnfg := config.GetService()
-	listen, err := net.Listen("tcp", "127.0.0.1:8080")
+	cnfg := config.GetService()
+	listen, err := net.Listen("tcp", cnfg.Config.Addr)
 	if err != nil {
 		logger.Log.Fatal("create listener error", zap.Error(err))
 	}

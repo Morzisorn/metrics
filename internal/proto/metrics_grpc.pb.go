@@ -29,7 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MetricControllerClient interface {
 	UpdateMetric(ctx context.Context, in *UpdateMetricRequest, opts ...grpc.CallOption) (*UpdateMetricResponse, error)
-	UpdateMetrics(ctx context.Context, in *UpdateMetricRequest, opts ...grpc.CallOption) (*UpdateMetricsResponse, error)
+	UpdateMetrics(ctx context.Context, in *UpdateMetricsRequest, opts ...grpc.CallOption) (*UpdateMetricsResponse, error)
 	GetMetric(ctx context.Context, in *GetMetricRequest, opts ...grpc.CallOption) (*GetMetricResponse, error)
 }
 
@@ -51,7 +51,7 @@ func (c *metricControllerClient) UpdateMetric(ctx context.Context, in *UpdateMet
 	return out, nil
 }
 
-func (c *metricControllerClient) UpdateMetrics(ctx context.Context, in *UpdateMetricRequest, opts ...grpc.CallOption) (*UpdateMetricsResponse, error) {
+func (c *metricControllerClient) UpdateMetrics(ctx context.Context, in *UpdateMetricsRequest, opts ...grpc.CallOption) (*UpdateMetricsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateMetricsResponse)
 	err := c.cc.Invoke(ctx, MetricController_UpdateMetrics_FullMethodName, in, out, cOpts...)
@@ -76,7 +76,7 @@ func (c *metricControllerClient) GetMetric(ctx context.Context, in *GetMetricReq
 // for forward compatibility.
 type MetricControllerServer interface {
 	UpdateMetric(context.Context, *UpdateMetricRequest) (*UpdateMetricResponse, error)
-	UpdateMetrics(context.Context, *UpdateMetricRequest) (*UpdateMetricsResponse, error)
+	UpdateMetrics(context.Context, *UpdateMetricsRequest) (*UpdateMetricsResponse, error)
 	GetMetric(context.Context, *GetMetricRequest) (*GetMetricResponse, error)
 	mustEmbedUnimplementedMetricControllerServer()
 }
@@ -91,7 +91,7 @@ type UnimplementedMetricControllerServer struct{}
 func (UnimplementedMetricControllerServer) UpdateMetric(context.Context, *UpdateMetricRequest) (*UpdateMetricResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateMetric not implemented")
 }
-func (UnimplementedMetricControllerServer) UpdateMetrics(context.Context, *UpdateMetricRequest) (*UpdateMetricsResponse, error) {
+func (UnimplementedMetricControllerServer) UpdateMetrics(context.Context, *UpdateMetricsRequest) (*UpdateMetricsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateMetrics not implemented")
 }
 func (UnimplementedMetricControllerServer) GetMetric(context.Context, *GetMetricRequest) (*GetMetricResponse, error) {
@@ -137,7 +137,7 @@ func _MetricController_UpdateMetric_Handler(srv interface{}, ctx context.Context
 }
 
 func _MetricController_UpdateMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateMetricRequest)
+	in := new(UpdateMetricsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func _MetricController_UpdateMetrics_Handler(srv interface{}, ctx context.Contex
 		FullMethod: MetricController_UpdateMetrics_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetricControllerServer).UpdateMetrics(ctx, req.(*UpdateMetricRequest))
+		return srv.(MetricControllerServer).UpdateMetrics(ctx, req.(*UpdateMetricsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

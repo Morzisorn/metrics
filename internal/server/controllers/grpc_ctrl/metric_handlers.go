@@ -2,9 +2,7 @@ package grpc_ctrl
 
 import (
 	"context"
-	"strings"
 
-	"github.com/morzisorn/metrics/internal/models"
 	pb "github.com/morzisorn/metrics/internal/proto"
 	"github.com/morzisorn/metrics/internal/server/logger"
 	"github.com/morzisorn/metrics/internal/server/services/metrics"
@@ -29,18 +27,7 @@ func (mc *MetricController) UpdateMetric(ctx context.Context, in *pb.UpdateMetri
 		return nil, status.Error(codes.InvalidArgument, "metric id is empty")
 	}
 
-	if in.Metric.Delta == 0 && in.Metric.Value == 0 {
-		return nil, status.Error(codes.InvalidArgument, "both value and delta is empty")
-	}
-
-	metric := metrics.Metric{
-		Metric: models.Metric{
-			ID:    in.Metric.Id,
-			Delta: &in.Metric.Delta,
-			Value: &in.Metric.Value,
-			MType: strings.ToLower(in.Metric.GetMtype().String()),
-		},
-	}
+	metric := metrics.Metric{Metric: *pb.ConvertMetricFromPB(in.Metric)}
 
 	err := mc.service.UpdateMetric(&metric)
 	if err != nil {
@@ -50,26 +37,23 @@ func (mc *MetricController) UpdateMetric(ctx context.Context, in *pb.UpdateMetri
 	logger.Log.Info("One metric successfully updated")
 
 	return &pb.UpdateMetricResponse{
-		Metric: convertMetricToPB(&metric),
+		Metric: pb.ConvertMetricToPB(&metric.Metric),
 	}, nil
 }
 
-func convertMetricToPB(m *metrics.Metric) *pb.Metric {
-	return &pb.Metric{
-		Id:    m.ID,
-		Mtype: stringToPBMType(m.MType),
-		Value: *m.Value,
-		Delta: *m.Delta,
+func (mc *MetricController) UpdateMetrics(ctx context.Context, in *pb.UpdateMetricsRequest) (*pb.UpdateMetricsResponse, error) {
+	ms := make([]metrics.Metric, len(in.Metrics))
+	for i, mPB := range in.Metrics {
+		m := metrics.Metric{Metric: *pb.ConvertMetricFromPB(mPB)}
+		ms[i] = m
 	}
-}
 
-func stringToPBMType(s string) pb.Metric_MType {
-	switch s {
-	case "GAUGE":
-		return pb.Metric_GAUGE
-	case "COUNTER":
-		return pb.Metric_COUNTER
-	default:
-		return pb.Metric_GAUGE
+	err := mc.service.UpdateMetrics(&ms)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "update metrics error: %s", err)
 	}
+
+	logger.Log.Info("Batch of metrics successfully updated")
+
+	return &pb.UpdateMetricsResponse{}, nil
 }

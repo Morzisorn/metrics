@@ -9,7 +9,7 @@ import (
 
 func (g *GRPCClient) SendMetric(m *agent.Metric) error {
 	req := pb.UpdateMetricRequest{
-		Metric: convertMetricToPB(m),
+		Metric: pb.ConvertMetricToPB(&m.Metric),
 	}
 
 	_, err := g.Client.UpdateMetric(context.Background(), &req)
@@ -18,32 +18,21 @@ func (g *GRPCClient) SendMetric(m *agent.Metric) error {
 }
 
 func (g *GRPCClient) SendMetricsBatch(m *agent.Metrics) error {
-	return nil
-}
+	metricsPB := make([]*pb.Metric, len(m.Metrics))
+	var i int
+	m.Mu.RLock()
+	for _, metric := range m.Metrics {
+		metricsPB[i] = pb.ConvertMetricToPB(&metric.Metric)
+		i++
+	}
+	m.Mu.RUnlock()
 
-func convertMetricToPB(m *agent.Metric) *pb.Metric {
-	p := pb.Metric{
-		Id:    m.ID,
-		Mtype: stringToPBMType(m.MType),
+	req := pb.UpdateMetricsRequest{
+		Metrics: metricsPB,
 	}
-	if m.Delta != nil {
-		p.Delta = *m.Delta
-	}
-	if m.Value != nil {
-		p.Value = *m.Value
-	}
-	return &p
-}
 
-func stringToPBMType(s string) pb.Metric_MType {
-	switch s {
-	case "GAUGE":
-		return pb.Metric_GAUGE
-	case "COUNTER":
-		return pb.Metric_COUNTER
-	default:
-		return pb.Metric_GAUGE
-	}
+	_, err := g.Client.UpdateMetrics(context.Background(), &req)
+	return err
 }
 
 func (g *GRPCClient) Close() {}

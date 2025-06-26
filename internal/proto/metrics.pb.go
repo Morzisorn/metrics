@@ -441,10 +441,10 @@ const file_internal_proto_metrics_proto_rawDesc = "" +
 	"\x06metric\x18\x01 \x01(\v2\f.grpc.MetricR\x06metric\"O\n" +
 	"\x11GetMetricResponse\x12$\n" +
 	"\x06metric\x18\x01 \x01(\v2\f.grpc.MetricR\x06metric\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error2\xe0\x01\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error2\xe1\x01\n" +
 	"\x10MetricController\x12E\n" +
-	"\fUpdateMetric\x12\x19.grpc.UpdateMetricRequest\x1a\x1a.grpc.UpdateMetricResponse\x12G\n" +
-	"\rUpdateMetrics\x12\x19.grpc.UpdateMetricRequest\x1a\x1b.grpc.UpdateMetricsResponse\x12<\n" +
+	"\fUpdateMetric\x12\x19.grpc.UpdateMetricRequest\x1a\x1a.grpc.UpdateMetricResponse\x12H\n" +
+	"\rUpdateMetrics\x12\x1a.grpc.UpdateMetricsRequest\x1a\x1b.grpc.UpdateMetricsResponse\x12<\n" +
 	"\tGetMetric\x12\x16.grpc.GetMetricRequest\x1a\x17.grpc.GetMetricResponseB\fZ\n" +
 	"grpc/protob\x06proto3"
 
@@ -480,7 +480,7 @@ var file_internal_proto_metrics_proto_depIdxs = []int32{
 	1, // 4: grpc.GetMetricRequest.metric:type_name -> grpc.Metric
 	1, // 5: grpc.GetMetricResponse.metric:type_name -> grpc.Metric
 	2, // 6: grpc.MetricController.UpdateMetric:input_type -> grpc.UpdateMetricRequest
-	2, // 7: grpc.MetricController.UpdateMetrics:input_type -> grpc.UpdateMetricRequest
+	4, // 7: grpc.MetricController.UpdateMetrics:input_type -> grpc.UpdateMetricsRequest
 	6, // 8: grpc.MetricController.GetMetric:input_type -> grpc.GetMetricRequest
 	3, // 9: grpc.MetricController.UpdateMetric:output_type -> grpc.UpdateMetricResponse
 	5, // 10: grpc.MetricController.UpdateMetrics:output_type -> grpc.UpdateMetricsResponse
