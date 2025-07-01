@@ -35,7 +35,10 @@ func RunAgent() error {
 	now := time.Now()
 	lastReport := time.Now()
 	m := agent.Metrics{}
-	c := client.NewMetricClient(Service)
+	c, err := client.NewMetricClient(Service)
+	if err != nil {
+		return fmt.Errorf("create metric client error: %v", err)
+	}
 	logger.Log.Info("Running agent.", zap.String("Address: ", Service.Config.Addr))
 	idleConnsClosed := make(chan struct{})
 

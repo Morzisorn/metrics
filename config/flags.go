@@ -8,6 +8,7 @@ import (
 
 func (c *Config) parseAgentFlags() {
 	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
+	pflag.StringVarP(&c.AddrGRPC, "addr-grpc", "g", "localhost:8081", "address and port to run agent")
 	pflag.StringVarP(&c.Key, "key", "k", "", "secret key")
 	pflag.Float64VarP(&c.PollInterval, "poll", "p", 2, "poll interval")
 	pflag.Float64VarP(&c.ReportInterval, "report", "r", 10, "report interval")
@@ -23,6 +24,7 @@ func (c *Config) parseAgentFlags() {
 
 func (c *Config) parseServerFlags() error {
 	pflag.StringVarP(&c.Addr, "addr", "a", "localhost:8080", "address and port to run agent")
+	pflag.StringVarP(&c.AddrGRPC, "addr-grpc", "g", "localhost:8081", "address and port to run agent")
 	pflag.StringVarP(&c.Key, "key", "k", "", "secret key")
 	pflag.Int64VarP(&c.StoreInterval, "store", "i", 300, "store interval")
 	pflag.StringVarP(&c.FileStoragePath, "file", "f", "storage.json", "file storage path")

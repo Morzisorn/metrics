@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/morzisorn/metrics/config"
@@ -16,15 +17,14 @@ type MetricsClient interface {
 	Close()
 }
 
-func NewMetricClient(cnfg *config.Service) MetricsClient {
+func NewMetricClient(cnfg *config.Service) (MetricsClient, error) {
 	switch cnfg.Config.Protocol {
 	case "http":
-		return NewHTTPClient(cnfg)
+		return NewHTTPClient(cnfg), nil
 	case "grpc":
-		return NewGRPCClient(cnfg)
+		return NewGRPCClient(cnfg), nil
 	default:
-		logger.Log.Panic("Create new metric client error: incorrect protocol")
-		return nil
+		return nil, errors.New("create new metric client error: incorrect protocol")
 	}
 }
 

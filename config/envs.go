@@ -134,6 +134,13 @@ func (c *Config) parseServerEnvs() {
 	} else if c.Addr == "" && configMap != nil && configMap["address"].(string) != "" {
 		c.Addr = configMap["address"].(string)
 	}
+	
+	addrGRPC := os.Getenv("ADDRESS_GRPC")
+	if addrGRPC != "" {
+		c.AddrGRPC = addrGRPC
+	} else if c.AddrGRPC == "" && configMap != nil && configMap["address_grpc"].(string) != "" {
+		c.AddrGRPC = configMap["address_grpc"].(string)
+	}
 
 	i, err := getEnvInt("STORE_INTERVAL")
 	if err == nil {

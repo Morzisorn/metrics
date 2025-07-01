@@ -21,10 +21,11 @@ type Config struct {
 type CommonConfig struct {
 	AppType       string
 	Addr          string
+	AddrGRPC      string
 	Key           string
 	CryptoKeyPath string
 	ConfigFile    string
-	Protocol  string
+	Protocol      string
 }
 
 type AgentConfig struct {
