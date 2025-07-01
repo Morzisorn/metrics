@@ -34,15 +34,9 @@ func (c *Config) parseEnv(app string) error {
 func (c *Config) parseAgentEnvs() {
 	c.parseAgentFlags()
 
-	var configMap map[string]interface{}
-
-	configFile, err := getEnvString("CONFIG")
-	if err == nil && configFile != "" {
-		c.ConfigFile = configFile
-		configMap, err = getConfigMap(configFile)
-		if err != nil {
-			logger.Log.Panic("parse json config error ", zap.Error(err))
-		}
+	configMap, err := getConfigMap(c)
+	if err != nil {
+		logger.Log.Panic("get json config error ", zap.Error(err))
 	}
 
 	addr := os.Getenv("ADDRESS")
@@ -109,10 +103,17 @@ func (c *Config) parseAgentEnvs() {
 		if err != nil {
 			logger.Log.Panic("get crypto key from file error ", zap.Error(err))
 		}
-		c.PublicKey, err = getKeyFromPem[*rsa.PublicKey](pemData)
+		c.PublicKey, err = getPublicKeyFromPem(pemData)
 		if err != nil {
 			logger.Log.Panic("parse public key error ", zap.Error(err))
 		}
+	}
+
+	p, err := getEnvString("PROTOCOL")
+	if err == nil {
+		c.Protocol = p
+	} else if c.Protocol == "" && configMap != nil && configMap["protocol"].(string) != "" {
+		c.Protocol = configMap["protocol"].(string)
 	}
 }
 
@@ -122,15 +123,9 @@ func (c *Config) parseServerEnvs() {
 		logger.Log.Panic("parse flags error ", zap.Error(err))
 	}
 
-	var configMap map[string]interface{}
-
-	configFile, err := getEnvString("CONFIG")
-	if err == nil && configFile != "" {
-		c.ConfigFile = configFile
-		configMap, err = getConfigMap(configFile)
-		if err != nil {
-			logger.Log.Panic("parse json config error ", zap.Error(err))
-		}
+	configMap, err := getConfigMap(c)
+	if err != nil {
+		logger.Log.Panic("get json config error ", zap.Error(err))
 	}
 
 	addr := os.Getenv("ADDRESS")
@@ -138,6 +133,13 @@ func (c *Config) parseServerEnvs() {
 		c.Addr = addr
 	} else if c.Addr == "" && configMap != nil && configMap["address"].(string) != "" {
 		c.Addr = configMap["address"].(string)
+	}
+	
+	addrGRPC := os.Getenv("ADDRESS_GRPC")
+	if addrGRPC != "" {
+		c.AddrGRPC = addrGRPC
+	} else if c.AddrGRPC == "" && configMap != nil && configMap["address_grpc"].(string) != "" {
+		c.AddrGRPC = configMap["address_grpc"].(string)
 	}
 
 	i, err := getEnvInt("STORE_INTERVAL")
@@ -187,10 +189,24 @@ func (c *Config) parseServerEnvs() {
 		if err != nil {
 			logger.Log.Panic("get crypto key from file error ", zap.Error(err))
 		}
-		c.PrivateKey, err = getKeyFromPem[*rsa.PrivateKey](pemData)
+		c.PrivateKey, err = getPrivateKeyFromPem(pemData)
 		if err != nil {
 			logger.Log.Panic("parse private key error ", zap.Error(err))
 		}
+	}
+
+	t, err := getEnvString("TRUSTED_SUBNET")
+	if err == nil {
+		c.TrustedSubnet = t
+	} else if c.TrustedSubnet == "" && configMap != nil && configMap["trusted_subnet"].(string) != "" {
+		c.TrustedSubnet = configMap["trusted_subnet"].(string)
+	}
+
+	p, err := getEnvString("PROTOCOL")
+	if err == nil {
+		c.Protocol = p
+	} else if c.Protocol == "" && configMap != nil && configMap["protocol"].(string) != "" {
+		c.Protocol = configMap["protocol"].(string)
 	}
 }
 
@@ -239,8 +255,8 @@ func parseRetryDelays(s string) ([]time.Duration, error) {
 	return res, nil
 }
 
-func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error) {
-	var zero T
+func getPublicKeyFromPem(pemData string) (*rsa.PublicKey, error) {
+	var zero *rsa.PublicKey
 	rest := []byte(pemData)
 	for {
 		block, remaining := pem.Decode(rest)
@@ -253,11 +269,24 @@ func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error
 			if err != nil {
 				return nil, err
 			}
-			pub, ok := pubIfc.(T)
+			pub, ok := pubIfc.(*rsa.PublicKey)
 			if !ok {
 				return nil, fmt.Errorf("not RSA public key")
 			}
 			return pub, nil
+		}
+
+		rest = remaining
+	}
+}
+
+func getPrivateKeyFromPem(pemData string) (*rsa.PrivateKey, error) {
+	var zero *rsa.PrivateKey
+	rest := []byte(pemData)
+	for {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			return nil, fmt.Errorf("no PUBLIC KEY block found")
 		}
 
 		if _, isPriv := any(zero).(*rsa.PrivateKey); isPriv && block.Type == "PRIVATE KEY" {
@@ -265,7 +294,7 @@ func getKeyFromPem[T *rsa.PublicKey | *rsa.PrivateKey](pemData string) (T, error
 			if err != nil {
 				return nil, err
 			}
-			priv, ok := privIfc.(T)
+			priv, ok := privIfc.(*rsa.PrivateKey)
 			if !ok {
 				return nil, fmt.Errorf("not RSA private key")
 			}

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetConfigMap(t *testing.T) {
-	_, err := getConfigMap("test_config.json")
+func TestParseJSONConfig(t *testing.T) {
+	_, err := parseJSONConfig("test_config.json")
 	require.NoError(t, err)
 }

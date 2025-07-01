@@ -74,17 +74,17 @@ func TestHTTPClient_MetricSenderJob_Success(t *testing.T) {
 		// Проверяем HTTP метод и path
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/update/", r.URL.Path)
-		
+
 		// Читаем и парсим метрику из запроса
 		var receivedMetric agent.Metric
 		err := json.NewDecoder(r.Body).Decode(&receivedMetric)
 		assert.NoError(t, err)
-		
+
 		// Сохраняем полученную метрику (thread-safe)
 		mutex.Lock()
 		receivedMetrics = append(receivedMetrics, receivedMetric)
 		mutex.Unlock()
-		
+
 		// Возвращаем успешный ответ
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -108,7 +108,7 @@ func TestHTTPClient_MetricSenderJob_Success(t *testing.T) {
 		},
 		{
 			Metric: models.Metric{
-				ID:    "memory_usage", 
+				ID:    "memory_usage",
 				MType: "gauge",
 				Value: getPointer(60.2),
 			},
@@ -134,7 +134,7 @@ func TestHTTPClient_MetricSenderJob_Success(t *testing.T) {
 	wg.Add(1)
 
 	// Запускаем metricSenderJob в горутине
-	go client.metricSenderJob(chIn, &wg)
+	go metricSenderJob(client, chIn, &wg)
 
 	// Ждем завершения горутины
 	wg.Wait()
@@ -142,7 +142,7 @@ func TestHTTPClient_MetricSenderJob_Success(t *testing.T) {
 	// Проверяем результаты
 	mutex.Lock()
 	assert.Len(t, receivedMetrics, len(testMetrics), "Should receive all sent metrics")
-	
+
 	// Проверяем, что все метрики были получены корректно
 	for i, expectedMetric := range testMetrics {
 		found := false
@@ -165,7 +165,6 @@ func TestHTTPClient_MetricSenderJob_Success(t *testing.T) {
 	mutex.Unlock()
 }
 
-
 func TestHTTPClient_SendMetricsBatch_Success(t *testing.T) {
 	// Переменная для хранения полученного батча метрик
 	var receivedBatch []models.Metric
@@ -176,11 +175,11 @@ func TestHTTPClient_SendMetricsBatch_Success(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/updates/", r.URL.Path)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		
+
 		// Читаем и парсим батч метрик из запроса
 		err := json.NewDecoder(r.Body).Decode(&receivedBatch)
 		assert.NoError(t, err)
-		
+
 		// Возвращаем успешный ответ
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -205,7 +204,7 @@ func TestHTTPClient_SendMetricsBatch_Success(t *testing.T) {
 		"memory_usage": {
 			Metric: models.Metric{
 				ID:    "memory_usage",
-				MType: "gauge", 
+				MType: "gauge",
 				Value: getPointer(60.2),
 			},
 		},

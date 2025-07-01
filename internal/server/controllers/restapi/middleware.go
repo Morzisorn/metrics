@@ -1,4 +1,4 @@
-package controllers
+package restapi
 
 import (
 	"bytes"
@@ -10,7 +10,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -220,6 +222,12 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 func DecryptMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		service := config.GetService()
+		if service.Config.PrivateKey == nil {
+			c.Next()
+			return
+		}
+
 		if c.GetHeader("X-Encrypted") != "1" {
 			c.Next()
 			return
@@ -240,7 +248,6 @@ func DecryptMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		service := config.GetService()
 
 		encKey, err := base64.StdEncoding.DecodeString(w.Key)
 		if err != nil {
@@ -295,4 +302,50 @@ func DecryptMiddleware() gin.HandlerFunc {
 		c.Request.Header.Del("X-Encrypted")
 		c.Next()
 	}
+}
+
+func ValidateIPMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cnfg := config.GetService()
+		if cnfg.Config.TrustedSubnet == "" {
+			c.Next()
+			return
+		}
+
+		realIP := c.Request.Header.Get("X-Real-IP")
+		if realIP == "" {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		trusted, err := isIPInSubnet(realIP, cnfg.Config.TrustedSubnet)
+		if err != nil {
+			logger.Log.Error("Check is IP trusted error", zap.Error(err))
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		
+		if !trusted {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func isIPInSubnet(ipStr, cidr string) (bool, error) {
+	// Parse CIDR
+	_, subnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return false, fmt.Errorf("invalid CIDR: %v", err)
+	}
+
+	// Parse IP
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false, fmt.Errorf("invalid IP address: %s", ipStr)
+	}
+
+	return subnet.Contains(ip), nil
 }

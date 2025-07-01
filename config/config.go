@@ -21,9 +21,11 @@ type Config struct {
 type CommonConfig struct {
 	AppType       string
 	Addr          string
+	AddrGRPC      string
 	Key           string
 	CryptoKeyPath string
 	ConfigFile    string
+	Protocol      string
 }
 
 type AgentConfig struct {
@@ -41,6 +43,7 @@ type ServerConfig struct {
 	DBConnStr       string
 	StorageType     string
 	PrivateKey      *rsa.PrivateKey
+	TrustedSubnet   string
 }
 
 type Service struct {

@@ -153,8 +153,8 @@ func encryptMiddleware(r *resty.Request) error {
 	}
 
 	r.SetBody(wrapped)
-	//r.SetHeader("Content-Type", "application/json")
 	r.SetHeader("X-Encrypted", "1")
 
 	return nil 
 }
+

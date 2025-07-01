@@ -1,4 +1,4 @@
-package controllers
+package restapi
 
 import (
 	"net/http"

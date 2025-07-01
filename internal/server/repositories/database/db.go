@@ -19,7 +19,7 @@ var (
 	oncePool     sync.Once
 )
 
-type DBInterface interface {
+type Database interface {
 	PingDB() error
 	UpdateGauge(name string, value float64) error
 	UpdateCounter(name string, value float64) (float64, error)
@@ -38,7 +38,7 @@ type PoolInterface interface {
 }
 
 // Проверяем на этапе компиляции, что DBStorage реализует интерфейс:
-var _ DBInterface = (*DBStorage)(nil)
+var _ Database = (*DBStorage)(nil)
 
 type DBStorage struct {
 	Pool PoolInterface
